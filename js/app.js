@@ -9,10 +9,10 @@ import { speech } from './speech.js';
 
 const PROVIDER_MODELS = {
   gemini: [
-    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (推薦 / 極速最新)' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (推薦 / 官方經典全能)' },
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (強大高階推理)' },
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Preview 測試版)' },
     { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite (高輕量)' },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (經典熱門)' },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (強大推理)' },
     { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
   ],
   openai: [
@@ -118,12 +118,12 @@ class App {
     const provider = await db.getSetting('provider', 'gemini');
     const apiKey = await db.getSetting('apiKey', '');
     const baseUrl = await db.getSetting('baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai');
-    let model = await db.getSetting('model', 'gemini-2.0-flash');
+    let model = await db.getSetting('model', 'gemini-1.5-flash');
     if (model) model = model.replace(/^models\//, '');
 
     // Auto-fix model mismatch between provider and saved model
     if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || model.startsWith('llama') || !model)) {
-      model = 'gemini-2.0-flash';
+      model = 'gemini-1.5-flash';
     } else if (provider === 'openai' && model.startsWith('gemini')) {
       model = 'gpt-4o-mini';
     } else if (provider === 'deepseek' && model.startsWith('gemini')) {
@@ -199,7 +199,7 @@ class App {
 
     // Final sanity check
     if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || !model)) {
-      model = 'gemini-2.0-flash';
+      model = 'gemini-1.5-flash';
     }
 
     const speechRate = parseFloat(this.el.speechRateInput.value);
