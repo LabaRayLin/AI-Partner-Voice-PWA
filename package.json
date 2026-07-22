@@ -1,0 +1,13 @@
+{
+  "name": "ai-partner-voice-pwa",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI Partner & Agents - 智能英語口語助教 PWA 應用程式",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["ai", "pwa", "english", "speech", "tts", "stt", "agents"],
+  "author": "Antigravity Pair Programmer",
+  "license": "MIT"
+}

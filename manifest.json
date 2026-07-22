@@ -1,0 +1,24 @@
+{
+  "name": "AI Partner & Agents - 智能英語助教",
+  "short_name": "AI Partner",
+  "description": "專為英語學習打造的 AI 口語對話與智能助教 PWA 應用",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

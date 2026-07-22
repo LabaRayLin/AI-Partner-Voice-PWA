@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Partner & Agents - 智能英語口語助教 PWA</title>
+  <meta name="description" content="專為英語學習者打造的 AI 口語對話與智能助教 PWA 應用，支援語音朗讀、聽寫、語法糾錯與自訂 AI 導師。" />
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+  <link rel="apple-touch-icon" href="assets/icon.svg" />
+
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.8);
+    }
+    @keyframes pulse-wave {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+    }
+    .animate-pulse-wave {
+      animation: pulse-wave 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-indigo-500 selection:text-white">
+
+  <!-- Main Container -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-80 bg-slate-900/90 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full">
+      
+      <!-- Sidebar Header -->
+      <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>
+          </div>
+          <div>
+            <h1 class="font-bold text-base tracking-tight text-white flex items-center gap-1">
+              AI Partner <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">PWA</span>
+            </h1>
+            <p class="text-xs text-slate-400">智能英語口語助教</p>
+          </div>
+        </div>
+
+        <button id="sidebar-toggle-btn" class="lg:hidden text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="p-3 grid grid-cols-2 gap-2 border-b border-slate-800/60">
+        <button id="new-chat-btn" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          開啓新對話
+        </button>
+        <button id="add-agent-btn" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 text-xs font-semibold transition-all active:scale-95">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          新增 AI 助教
+        </button>
+      </div>
+
+      <!-- Agents & History Tabs -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-5">
+        <!-- AI Agents Section -->
+        <div>
+          <div class="flex items-center justify-between px-2 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">AI 導師與角色 (Agents)</span>
+          </div>
+          <div id="agents-list" class="space-y-1.5">
+            <!-- Dynamically Rendered Agent Cards -->
+          </div>
+        </div>
+
+        <!-- Chat History Section -->
+        <div>
+          <div class="flex items-center justify-between px-2 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">歷史對話記錄 (History)</span>
+          </div>
+          <div id="chats-list" class="space-y-1">
+            <!-- Dynamically Rendered Chat Items -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-800/80 flex items-center justify-between bg-slate-900/60 text-xs text-slate-400">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          IndexedDB 本地儲存
+        </span>
+        <button id="install-pwa-btn" class="hidden flex items-center gap-1 px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors">
+          📲 安裝 PWA App
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
+      
+      <!-- Top Navigation Header -->
+      <header class="h-16 px-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md flex items-center justify-between z-20">
+        <div class="flex items-center gap-3">
+          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          
+          <!-- Current Active Agent Header -->
+          <div class="flex items-center gap-3">
+            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=EnglishCoach" alt="Avatar" class="w-9 h-9 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 shadow-md" />
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 id="active-agent-name" class="font-bold text-sm text-white">英語教練 (English Coach)</h2>
+                <span id="active-agent-category" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">口語重組</span>
+              </div>
+              <p id="active-agent-desc" class="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">重組與精煉口語表達，使用地道美式英語與習慣用語。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Right Actions -->
+        <div class="flex items-center gap-2">
+          <button id="open-settings-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-200 transition-all active:scale-95">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            設定 (API Key)
+          </button>
+        </div>
+      </header>
+
+      <!-- Messages Viewport -->
+      <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <!-- Empty State -->
+        <div id="messages-empty-state" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+          <div class="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center mb-4 text-indigo-400">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold text-slate-300 mb-1">開始與您的 AI 導師對話吧！</h3>
+          <p class="text-xs text-slate-400 max-w-sm">您可以直接輸入文字，或是點擊下方麥克風進行語音口語練習，AI 導師將即時為您朗讀與診斷。</p>
+        </div>
+      </div>
+
+      <!-- Microphone Active Floating Indicator -->
+      <div id="mic-pulse" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs px-4 py-2 rounded-full shadow-2xl z-40 flex items-center gap-2 animate-bounce border border-indigo-400/50">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping"></span>
+        <span id="mic-status-text">正在聆聽您的口語... 請說話</span>
+      </div>
+
+      <!-- Bottom Chat Input Bar -->
+      <div class="p-3 sm:p-4 border-t border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
+        <div class="max-w-4xl mx-auto flex items-end gap-2 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-2 focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all shadow-xl">
+          
+          <!-- Mic / Voice Button -->
+          <button id="mic-btn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 transition-all active:scale-90 relative flex-shrink-0" title="開啟麥克風口語對話">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>
+          </button>
+
+          <!-- Textarea -->
+          <textarea id="chat-input" rows="1" placeholder="輸入訊息或口語草稿... (Shift+Enter 換行)" class="flex-1 bg-transparent text-slate-100 placeholder-slate-500 text-sm focus:outline-none resize-none max-h-32 min-h-[40px] py-2 px-1"></textarea>
+
+          <!-- Send Button -->
+          <button id="send-btn" class="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95 flex-shrink-0" title="傳送訊息">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-7-9-7-9 7 9 7zm0 0v-8"/></svg>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-500 text-center mt-2">提示：AI 可能產生不精準資訊，請結合發音與字典學習。</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <span>⚙️ API 與語音設定</span>
+        </h3>
+        <button id="close-settings-btn" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">AI 服務提供者 (Provider)</label>
+          <select id="setting-provider" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+            <option value="openai">OpenAI (Official API)</option>
+            <option value="deepseek">DeepSeek (OpenAI Compatible)</option>
+            <option value="ollama">Ollama (Local LLM - localhost:11434)</option>
+            <option value="custom">自訂 OpenAI 相容服務 (Custom Endpoint)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">API Key</label>
+          <input type="password" id="setting-api-key" placeholder="sk-..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Base URL</label>
+          <input type="text" id="setting-base-url" placeholder="https://api.openai.com/v1" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Model Name</label>
+          <input type="text" id="setting-model" placeholder="gpt-4o-mini" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="font-medium text-slate-300">自動語音朗讀 AI 回覆 (Auto-Play TTS)</label>
+            <input type="checkbox" id="setting-autoplay" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700" checked />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-medium text-slate-300">朗讀語速 (Speech Rate)</label>
+              <span id="setting-speech-rate-val" class="font-mono text-indigo-400">1.0x</span>
+            </div>
+            <input type="range" id="setting-speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-indigo-500" />
+          </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">TTS 朗讀聲線 (Voice)</label>
+            <select id="setting-voice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              <option value="">預設系統聲音</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button id="save-settings-btn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs transition-all shadow-lg shadow-indigo-600/30">
+          儲存設定
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Agent Modal -->
+  <div id="agent-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white">✨ 新增自訂 AI 助教</h3>
+        <button id="close-agent-btn" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">助教名稱</label>
+          <input type="text" id="new-agent-name" placeholder="例如：商務簡報教練" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">分類標籤 (Category)</label>
+          <input type="text" id="new-agent-category" placeholder="例如：商務英語 / 音標口語" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">簡短描述</label>
+          <input type="text" id="new-agent-desc" placeholder="簡單說明這個 AI 助教的用途..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">System Prompt (角色設定指令)</label>
+          <textarea id="new-agent-prompt" rows="4" placeholder="詳細說明 AI 助教的角色、語氣與回覆規範..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono"></textarea>
+        </div>
+      </div>
+
+      <button id="save-agent-btn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs transition-all shadow-lg shadow-indigo-600/30">
+        建立助教
+      </button>
+    </div>
+  </div>
+
+  <!-- Main JavaScript ES Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
