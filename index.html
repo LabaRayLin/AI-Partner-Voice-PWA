@@ -226,6 +226,7 @@
         <div>
           <label class="block font-medium text-slate-300 mb-1">AI 服務提供者 (Provider)</label>
           <select id="setting-provider" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+            <option value="gemini">Google Gemini (Gemini API Key)</option>
             <option value="openai">OpenAI (Official API)</option>
             <option value="deepseek">DeepSeek (OpenAI Compatible)</option>
             <option value="ollama">Ollama (Local LLM - localhost:11434)</option>
@@ -235,17 +236,17 @@
 
         <div>
           <label class="block font-medium text-slate-300 mb-1">API Key</label>
-          <input type="password" id="setting-api-key" placeholder="sk-..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+          <input type="password" id="setting-api-key" placeholder="輸入 API Key (如 AIzaSy... 或 sk-...)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
         </div>
 
         <div>
           <label class="block font-medium text-slate-300 mb-1">Base URL</label>
-          <input type="text" id="setting-base-url" placeholder="https://api.openai.com/v1" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+          <input type="text" id="setting-base-url" placeholder="https://generativelanguage.googleapis.com/v1beta/openai" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
         </div>
 
         <div>
           <label class="block font-medium text-slate-300 mb-1">Model Name</label>
-          <input type="text" id="setting-model" placeholder="gpt-4o-mini" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+          <input type="text" id="setting-model" placeholder="gemini-2.0-flash" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
         </div>
 
         <div class="pt-2 border-t border-slate-800 space-y-3">

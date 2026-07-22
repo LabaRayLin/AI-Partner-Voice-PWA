@@ -82,10 +82,10 @@ class App {
 
   // --- Settings ---
   async loadSettings() {
-    const provider = await db.getSetting('provider', 'openai');
+    const provider = await db.getSetting('provider', 'gemini');
     const apiKey = await db.getSetting('apiKey', '');
-    const baseUrl = await db.getSetting('baseUrl', 'https://api.openai.com/v1');
-    const model = await db.getSetting('model', 'gpt-4o-mini');
+    const baseUrl = await db.getSetting('baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai');
+    const model = await db.getSetting('model', 'gemini-2.0-flash');
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
     const voiceName = await db.getSetting('voiceName', '');
@@ -135,7 +135,10 @@ class App {
 
   updateProviderDefaults(provider, overwrite = true) {
     if (!overwrite) return;
-    if (provider === 'openai') {
+    if (provider === 'gemini') {
+      this.el.baseUrlInput.value = 'https://generativelanguage.googleapis.com/v1beta/openai';
+      this.el.modelInput.value = 'gemini-2.0-flash';
+    } else if (provider === 'openai') {
       this.el.baseUrlInput.value = 'https://api.openai.com/v1';
       this.el.modelInput.value = 'gpt-4o-mini';
     } else if (provider === 'deepseek') {
@@ -334,14 +337,12 @@ class App {
         : 'bg-slate-800/90 text-slate-100 border border-slate-700/60 rounded-tl-none backdrop-blur-md'
     }`;
 
-    // Message Text with simple formatting
     const textDiv = document.createElement('div');
     textDiv.className = 'prose prose-invert prose-sm max-w-none break-words space-y-2';
     textDiv.innerHTML = this.formatMarkdown(msg.content);
 
     contentBox.appendChild(textDiv);
 
-    // Audio Playback Button for AI messages
     if (!isUser) {
       const actionsDiv = document.createElement('div');
       actionsDiv.className = 'flex items-center gap-2 mt-2 pt-2 border-t border-slate-700/40 text-xs text-slate-400';
