@@ -1,43 +1,12 @@
 /**
  * app.js - Main Application Controller for AI Partner & Agents PWA
+ * Dedicated for Native Google Gemini API
  */
 
 import { db } from './db.js';
 import { PRESET_AGENTS, getAvatarUrl } from './agents.js';
 import { LLMClient } from './llm.js';
 import { speech } from './speech.js';
-
-const PROVIDER_MODELS = {
-  gemini: [
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (推薦 / 官方經典全能)' },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (強大高階推理)' },
-    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Preview 測試版)' },
-    { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite (高輕量)' },
-    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
-  ],
-  openai: [
-    { value: 'gpt-4o-mini', label: 'GPT-4o mini (推薦 / 快速經濟)' },
-    { value: 'gpt-4o', label: 'GPT-4o (旗艦全能)' },
-    { value: 'o3-mini', label: 'o3-mini (推理模型)' },
-    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
-  ],
-  deepseek: [
-    { value: 'deepseek-chat', label: 'DeepSeek-V3 (deepseek-chat 推薦)' },
-    { value: 'deepseek-reasoner', label: 'DeepSeek-R1 (deepseek-reasoner 深度思考)' },
-    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
-  ],
-  ollama: [
-    { value: 'llama3.2', label: 'Llama 3.2 (Local)' },
-    { value: 'llama3.1', label: 'Llama 3.1 (Local)' },
-    { value: 'qwen2.5', label: 'Qwen 2.5 (Local)' },
-    { value: 'gemma2', label: 'Gemma 2 (Local)' },
-    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
-  ],
-  custom: [
-    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
-  ]
-};
 
 class App {
   constructor() {
@@ -89,11 +58,8 @@ class App {
       saveAgentBtn: document.getElementById('save-agent-btn'),
 
       // Settings Inputs
-      providerSelect: document.getElementById('setting-provider'),
       apiKeyInput: document.getElementById('setting-api-key'),
-      baseUrlInput: document.getElementById('setting-base-url'),
       modelSelect: document.getElementById('setting-model'),
-      modelCustomInput: document.getElementById('setting-model-custom'),
       speechRateInput: document.getElementById('setting-speech-rate'),
       speechRateVal: document.getElementById('setting-speech-rate-val'),
       autoPlayCheck: document.getElementById('setting-autoplay'),
@@ -115,130 +81,49 @@ class App {
 
   // --- Settings ---
   async loadSettings() {
-    const provider = await db.getSetting('provider', 'gemini');
     const apiKey = await db.getSetting('apiKey', '');
-    const baseUrl = await db.getSetting('baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai');
-    let model = await db.getSetting('model', 'gemini-1.5-flash');
+    let model = await db.getSetting('model', 'gemini-2.0-flash');
     if (model) model = model.replace(/^models\//, '');
-
-    // Auto-fix model mismatch between provider and saved model
-    if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || model.startsWith('llama') || !model)) {
-      model = 'gemini-1.5-flash';
-    } else if (provider === 'openai' && model.startsWith('gemini')) {
-      model = 'gpt-4o-mini';
-    } else if (provider === 'deepseek' && model.startsWith('gemini')) {
-      model = 'deepseek-chat';
-    }
 
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
     const voiceName = await db.getSetting('voiceName', '');
 
-    this.llm.updateConfig({ provider, apiKey, baseUrl, model });
+    this.llm.updateConfig({ apiKey, model });
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
     if (voiceName) speech.setVoice(voiceName);
 
     // Populate Settings UI
-    this.el.providerSelect.value = provider;
     this.el.apiKeyInput.value = apiKey;
-    this.el.baseUrlInput.value = baseUrl;
+    this.el.modelSelect.value = model || 'gemini-2.0-flash';
     this.el.speechRateInput.value = speechRate;
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
-
-    this.populateModelDropdown(provider, model);
-  }
-
-  populateModelDropdown(provider, currentModel) {
-    const models = PROVIDER_MODELS[provider] || PROVIDER_MODELS.custom;
-    this.el.modelSelect.innerHTML = '';
-
-    const cleanCurrent = (currentModel || '').replace(/^models\//, '');
-    let matched = false;
-
-    models.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.value;
-      opt.textContent = m.label;
-      if (m.value === cleanCurrent && m.value !== 'custom') {
-        opt.selected = true;
-        matched = true;
-      }
-      this.el.modelSelect.appendChild(opt);
-    });
-
-    if (!matched) {
-      const isOtherProviderModel = cleanCurrent.startsWith('gpt-') || cleanCurrent.startsWith('deepseek') || cleanCurrent.startsWith('llama') || cleanCurrent.startsWith('gemini');
-      if (isOtherProviderModel || !cleanCurrent) {
-        this.el.modelSelect.value = models[0].value;
-        this.el.modelCustomInput.classList.add('hidden');
-      } else {
-        this.el.modelSelect.value = 'custom';
-        this.el.modelCustomInput.classList.remove('hidden');
-        this.el.modelCustomInput.value = cleanCurrent;
-      }
-    } else {
-      if (this.el.modelSelect.value === 'custom') {
-        this.el.modelCustomInput.classList.remove('hidden');
-      } else {
-        this.el.modelCustomInput.classList.add('hidden');
-      }
-    }
   }
 
   async saveSettings() {
-    const provider = this.el.providerSelect.value;
     const apiKey = this.el.apiKeyInput.value.trim();
-    const baseUrl = this.el.baseUrlInput.value.trim();
-    let model = this.el.modelSelect.value === 'custom' 
-      ? this.el.modelCustomInput.value.trim() 
-      : this.el.modelSelect.value;
-
-    if (model) model = model.replace(/^models\//, '');
-
-    // Final sanity check
-    if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || !model)) {
-      model = 'gemini-1.5-flash';
-    }
+    let model = this.el.modelSelect.value || 'gemini-2.0-flash';
+    model = model.replace(/^models\//, '');
 
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
     const voiceName = this.el.voiceSelect.value;
 
-    await db.saveSetting('provider', provider);
     await db.saveSetting('apiKey', apiKey);
-    await db.saveSetting('baseUrl', baseUrl);
     await db.saveSetting('model', model);
     await db.saveSetting('speechRate', speechRate);
     await db.saveSetting('autoPlay', autoPlay);
     await db.saveSetting('voiceName', voiceName);
 
-    this.llm.updateConfig({ provider, apiKey, baseUrl, model });
+    this.llm.updateConfig({ apiKey, model });
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
     speech.setVoice(voiceName);
 
     this.closeModal(this.el.settingsModal);
-    this.showToast('設定已成功儲存！', 'success');
-  }
-
-  updateProviderDefaults(provider, overwrite = true) {
-    if (overwrite) {
-      if (provider === 'gemini') {
-        this.el.baseUrlInput.value = 'https://generativelanguage.googleapis.com/v1beta/openai';
-      } else if (provider === 'openai') {
-        this.el.baseUrlInput.value = 'https://api.openai.com/v1';
-      } else if (provider === 'deepseek') {
-        this.el.baseUrlInput.value = 'https://api.deepseek.com/v1';
-      } else if (provider === 'ollama') {
-        this.el.baseUrlInput.value = 'http://localhost:11434/v1';
-        this.el.apiKeyInput.value = 'ollama';
-      }
-
-      const defaultModel = (PROVIDER_MODELS[provider] || PROVIDER_MODELS.custom)[0].value;
-      this.populateModelDropdown(provider, defaultModel);
-    }
+    this.showToast('Google Gemini 設定已成功儲存！', 'success');
   }
 
   // --- Agents ---
@@ -487,8 +372,8 @@ class App {
     const text = userInputText || this.el.chatInput.value.trim();
     if (!text || this.isGenerating || !this.currentChat) return;
 
-    if (!this.llm.apiKey && this.llm.provider !== 'ollama') {
-      this.showToast('請先點擊右上角設定 API Key！', 'error');
+    if (!this.llm.apiKey) {
+      this.showToast('請先點擊右上角設定 Google Gemini API Key！', 'error');
       this.openModal(this.el.settingsModal);
       return;
     }
@@ -556,8 +441,8 @@ class App {
 
     } catch (err) {
       console.error(err);
-      aiTextDiv.innerHTML = `<span class="text-red-400 font-semibold">⚠️ 錯誤: ${err.message || '無法連線至 AI 服務，請檢查網路或 API Key 設定。'}</span>`;
-      this.showToast('AI 回覆產生失敗，請檢查設定！', 'error');
+      aiTextDiv.innerHTML = `<span class="text-red-400 font-semibold">⚠️ 錯誤: ${err.message || '無法連線至 Gemini API，請檢查 API Key 設定。'}</span>`;
+      this.showToast('Gemini API 產生失敗，請檢查 API Key！', 'error');
     } finally {
       this.isGenerating = false;
       this.el.sendBtn.disabled = false;
@@ -638,10 +523,8 @@ class App {
 
     this.el.openSettingsBtn.addEventListener('click', async () => {
       // Sync form values with current LLM state
-      this.el.providerSelect.value = this.llm.provider;
       this.el.apiKeyInput.value = this.llm.apiKey;
-      this.el.baseUrlInput.value = this.llm.baseUrl;
-      this.populateModelDropdown(this.llm.provider, this.llm.model);
+      this.el.modelSelect.value = this.llm.model || 'gemini-2.0-flash';
 
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
@@ -658,19 +541,6 @@ class App {
 
     this.el.closeSettingsBtn.addEventListener('click', () => this.closeModal(this.el.settingsModal));
     this.el.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
-
-    this.el.providerSelect.addEventListener('change', (e) => {
-      this.updateProviderDefaults(e.target.value, true);
-    });
-
-    this.el.modelSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'custom') {
-        this.el.modelCustomInput.classList.remove('hidden');
-        this.el.modelCustomInput.focus();
-      } else {
-        this.el.modelCustomInput.classList.add('hidden');
-      }
-    });
 
     this.el.speechRateInput.addEventListener('input', (e) => {
       this.el.speechRateVal.textContent = `${e.target.value}x`;

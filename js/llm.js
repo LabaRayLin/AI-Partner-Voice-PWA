@@ -1,92 +1,98 @@
 /**
- * llm.js - Multi-Provider LLM Integration
- * Supports: Google Gemini, OpenAI, DeepSeek, Ollama (Local), Custom OpenAI-Compatible APIs
+ * llm.js - Native Google Gemini REST API Client
+ * Clean, fast, and 100% reliable direct connection to Google Gemini API
  */
 
 export class LLMClient {
   constructor(config = {}) {
-    this.provider = config.provider || 'gemini'; // 'gemini' | 'openai' | 'deepseek' | 'ollama' | 'custom'
     this.apiKey = config.apiKey || '';
-    this.baseUrl = config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/openai';
-    this.model = config.model || 'gemini-1.5-flash';
+    this.model = config.model || 'gemini-2.0-flash';
     this.temperature = config.temperature ?? 0.7;
   }
 
   updateConfig(config) {
-    if (config.provider) this.provider = config.provider;
-    if (config.apiKey !== undefined) this.apiKey = config.apiKey;
-    if (config.baseUrl) this.baseUrl = config.baseUrl;
-    if (config.model) this.model = config.model;
+    if (config.apiKey !== undefined) this.apiKey = config.apiKey.trim();
+    if (config.model) this.model = config.model.trim().replace(/^models\//, '');
     if (config.temperature !== undefined) this.temperature = config.temperature;
   }
 
-  getEndpoint() {
-    let url = this.baseUrl.replace(/\/+$/, '');
-    if (this.provider === 'ollama') {
-      if (!url.endsWith('/v1')) {
-        url = url + '/v1';
-      }
-    }
-    return `${url}/chat/completions`;
-  }
-
   /**
-   * Stream LLM response chunk by chunk
-   * @param {Array} messages - [{ role: 'system'|'user'|'assistant', content: string }]
-   * @param {Function} onChunk - Callback for incremental text (chunkText, fullText)
-   * @returns {Promise<string>} Full response text
+   * Stream LLM response from native Google Gemini API
+   * @param {Array} messages - [{ role: 'system'|'user'|'assistant'|'model', content: string }]
+   * @param {Function} onChunk - Callback (chunkText, fullText)
+   * @returns {Promise<string>} Full text response
    */
   async sendMessageStream(messages, onChunk) {
-    const endpoint = this.getEndpoint();
-    let modelName = (this.model || '').trim();
-
-    if (this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) {
-      modelName = modelName.replace(/^models\//, '');
-      if (!modelName || modelName.startsWith('gpt-') || modelName.startsWith('deepseek') || modelName.startsWith('llama')) {
-        modelName = 'gemini-1.5-flash';
-      }
+    if (!this.apiKey) {
+      throw new Error('請先輸入 Google Gemini API Key！');
     }
 
+    let selectedModel = (this.model || 'gemini-2.0-flash').replace(/^models\//, '');
+
     try {
-      return await this._doFetchStream(endpoint, modelName, messages, onChunk);
+      return await this._callGeminiAPI(selectedModel, messages, onChunk);
     } catch (err) {
-      // Seamless Fallback: If requested model returns 404 from Gemini API, auto-retry with gemini-1.5-flash
-      if ((this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) && err.message.includes('404') && modelName !== 'gemini-1.5-flash') {
-        console.warn(`[Gemini Fallback] Model ${modelName} returned 404. Retrying automatically with gemini-1.5-flash...`);
-        return await this._doFetchStream(endpoint, 'gemini-1.5-flash', messages, onChunk);
+      console.warn(`[Gemini API] Primary model ${selectedModel} failed:`, err.message);
+      // Auto Fallback if the selected model is not available
+      if (selectedModel !== 'gemini-1.5-flash') {
+        console.info('[Gemini API] Automatically falling back to gemini-1.5-flash...');
+        return await this._callGeminiAPI('gemini-1.5-flash', messages, onChunk);
       }
       throw err;
     }
   }
 
-  async _doFetchStream(endpoint, modelName, messages, onChunk) {
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+  async _callGeminiAPI(modelName, messages, onChunk) {
+    const cleanModel = modelName.replace(/^models\//, '');
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:streamGenerateContent?alt=sse&key=${encodeURIComponent(this.apiKey)}`;
 
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`;
-      if (this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) {
-        headers['x-goog-api-key'] = this.apiKey;
+    // Separate system instruction from conversation contents
+    let systemInstructionText = '';
+    const contentsPayload = [];
+
+    messages.forEach(msg => {
+      if (msg.role === 'system') {
+        systemInstructionText += (systemInstructionText ? '\n' : '') + msg.content;
+      } else {
+        // Gemini expects 'user' or 'model' (not 'assistant')
+        const role = (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user';
+        contentsPayload.push({
+          role: role,
+          parts: [{ text: msg.content || '' }]
+        });
       }
-    }
+    });
 
-    const payload = {
-      model: modelName,
-      messages: messages,
-      temperature: this.temperature,
-      stream: true,
+    const bodyPayload = {
+      contents: contentsPayload,
+      generationConfig: {
+        temperature: this.temperature,
+        maxOutputTokens: 2048,
+      }
     };
+
+    if (systemInstructionText) {
+      bodyPayload.system_instruction = {
+        parts: [{ text: systemInstructionText }]
+      };
+    }
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bodyPayload),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`API Request Failed (${response.status}): ${errText}`);
+      let parsedMessage = errText;
+      try {
+        const json = JSON.parse(errText);
+        parsedMessage = json.error?.message || errText;
+      } catch (e) {}
+      throw new Error(`Google Gemini API 錯誤 (${response.status}): ${parsedMessage}`);
     }
 
     const reader = response.body.getReader();
@@ -104,20 +110,24 @@ export class LLMClient {
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue; // Skip comments/pings
-        if (trimmed === 'data: [DONE]') continue;
+        if (!trimmed || trimmed.startsWith(':')) continue;
 
         if (trimmed.startsWith('data: ')) {
           try {
             const jsonStr = trimmed.substring(6);
             const parsed = JSON.parse(jsonStr);
-            const delta = parsed.choices?.[0]?.delta?.content || '';
-            if (delta) {
-              fullContent += delta;
-              if (onChunk) onChunk(delta, fullContent);
+            const candidates = parsed.candidates || [];
+            if (candidates.length > 0) {
+              const parts = candidates[0].content?.parts || [];
+              for (const part of parts) {
+                if (part.text) {
+                  fullContent += part.text;
+                  if (onChunk) onChunk(part.text, fullContent);
+                }
+              }
             }
           } catch (e) {
-            console.warn('Error parsing SSE line:', line, e);
+            console.warn('Error parsing SSE JSON:', line, e);
           }
         }
       }
