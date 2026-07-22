@@ -1,8 +1,9 @@
-const CACHE_NAME = 'ai-partner-pwa-v10';
+const CACHE_NAME = 'ai-partner-pwa-v11';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './assets/apple-touch-icon.png',
   './js/db.js',
   './js/agents.js',
   './js/speech.js',
@@ -13,7 +14,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell v10');
+      console.log('[Service Worker] Caching app shell v11');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
