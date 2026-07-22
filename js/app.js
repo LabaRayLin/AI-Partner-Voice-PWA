@@ -82,7 +82,7 @@ class App {
   // --- Settings ---
   async loadSettings() {
     const apiKey = await db.getSetting('apiKey', '');
-    let model = await db.getSetting('model', 'gemini-1.5-flash');
+    let model = await db.getSetting('model', 'gemini-2.5-flash');
     if (model) model = model.replace(/^models\//, '');
 
     const speechRate = await db.getSetting('speechRate', 1.0);
@@ -96,7 +96,7 @@ class App {
 
     // Populate Settings UI
     this.el.apiKeyInput.value = apiKey;
-    this.el.modelSelect.value = model || 'gemini-1.5-flash';
+    this.el.modelSelect.value = model || 'gemini-2.5-flash';
     this.el.speechRateInput.value = speechRate;
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
@@ -104,8 +104,12 @@ class App {
 
   async saveSettings() {
     const apiKey = this.el.apiKeyInput.value.trim();
-    let model = this.el.modelSelect.value || 'gemini-1.5-flash';
+    let model = this.el.modelSelect.value || 'gemini-2.5-flash';
     model = model.replace(/^models\//, '');
+
+    if (apiKey && !apiKey.startsWith('AIzaSy')) {
+      this.showToast('提示：Google Gemini API Key 通常以 "AIzaSy" 開頭，請確認是否為 AI Studio Key！', 'info');
+    }
 
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
@@ -442,7 +446,7 @@ class App {
     } catch (err) {
       console.error(err);
       aiTextDiv.innerHTML = `<span class="text-red-400 font-semibold">⚠️ 錯誤: ${err.message || '無法連線至 Gemini API，請檢查 API Key 設定。'}</span>`;
-      this.showToast('Gemini API 產生失敗，請檢查 API Key！', 'error');
+      this.showToast('Gemini API 產生失敗，請檢查 API Key 設定！', 'error');
     } finally {
       this.isGenerating = false;
       this.el.sendBtn.disabled = false;
@@ -496,7 +500,7 @@ class App {
     toast.className = `fixed bottom-6 right-6 ${bg} text-white text-sm px-4 py-2.5 rounded-xl shadow-2xl z-50 animate-bounce flex items-center gap-2`;
     toast.innerHTML = `<span>${message}</span>`;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => toast.remove(), 4000);
   }
 
   // --- Event Bindings ---
@@ -524,7 +528,7 @@ class App {
     this.el.openSettingsBtn.addEventListener('click', async () => {
       // Sync form values with current LLM state
       this.el.apiKeyInput.value = this.llm.apiKey;
-      this.el.modelSelect.value = this.llm.model || 'gemini-1.5-flash';
+      this.el.modelSelect.value = this.llm.model || 'gemini-2.5-flash';
 
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';

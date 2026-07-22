@@ -6,7 +6,7 @@
 export class LLMClient {
   constructor(config = {}) {
     this.apiKey = config.apiKey || '';
-    this.model = config.model || 'gemini-1.5-flash';
+    this.model = config.model || 'gemini-2.5-flash';
     this.temperature = config.temperature ?? 0.7;
   }
 
@@ -27,29 +27,27 @@ export class LLMClient {
       throw new Error('請先在設定中輸入有效的 Google Gemini API Key！');
     }
 
-    const primaryModel = (this.model || 'gemini-1.5-flash').replace(/^models\//, '');
+    const primaryModel = (this.model || 'gemini-2.5-flash').replace(/^models\//, '');
     
-    // Candidate model list for maximum compatibility
+    // Updated active models list for 2026 Google Gemini API
     const modelCandidates = Array.from(new Set([
       primaryModel,
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-pro',
-      'gemini-2.0-flash'
+      'gemini-2.5-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-pro',
+      'gemini-2.0-flash-lite'
     ]));
 
     let lastError = null;
 
     for (const modelName of modelCandidates) {
-      // Try v1 stable endpoint first, then v1beta
-      for (const apiVer of ['v1', 'v1beta']) {
+      for (const apiVer of ['v1beta', 'v1']) {
         try {
-          console.log(`[Gemini API] Trying ${apiVer} with model: ${modelName}`);
+          console.log(`[Gemini API] Connecting ${apiVer} with model: ${modelName}`);
           return await this._callGeminiStream(apiVer, modelName, messages, onChunk);
         } catch (err) {
           console.warn(`[Gemini API Warning] ${apiVer}/${modelName} failed:`, err.message);
           lastError = err;
-          // If it's an API Key error (400 / 403), don't keep looping model names
           if (err.message.includes('API key not valid') || err.message.includes('400') || err.message.includes('403')) {
             throw err;
           }
@@ -57,7 +55,7 @@ export class LLMClient {
       }
     }
 
-    throw lastError || new Error('連線 Google Gemini API 失敗，請確認 API Key 是否正確且已開通權限。');
+    throw lastError || new Error('連線 Google Gemini API 失敗，請確認 API Key 是否正確。');
   }
 
   async _callGeminiStream(apiVersion, modelName, messages, onChunk) {
