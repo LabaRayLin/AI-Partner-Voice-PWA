@@ -3,9 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Partner & Agents - 智能英語口語助教 PWA</title>
+  <title>英語口語 - AI Partner & Agents PWA</title>
   <meta name="description" content="專為英語學習者打造的 AI 口語對話與智能助教 PWA 應用，支援語音朗讀、聽寫、語法糾錯與自訂 AI 導師。" />
   <meta name="theme-color" content="#4f46e5" />
+  
+  <!-- iOS Home Screen Metadata -->
+  <meta name="apple-mobile-web-app-title" content="英語口語" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
   <link rel="apple-touch-icon" href="assets/icon.svg" />
@@ -80,7 +86,7 @@
           </div>
           <div>
             <h1 class="font-bold text-base tracking-tight text-white flex items-center gap-1">
-              AI Partner <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">PWA</span>
+              英語口語 <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">PWA</span>
             </h1>
             <p class="text-xs text-slate-400">智能英語口語助教</p>
           </div>
@@ -153,10 +159,10 @@
             <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=EnglishCoach" alt="Avatar" class="w-9 h-9 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 shadow-md" />
             <div>
               <div class="flex items-center gap-2">
-                <h2 id="active-agent-name" class="font-bold text-sm text-white">英語教練 (English Coach)</h2>
-                <span id="active-agent-category" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">口語重組</span>
+                <h2 id="active-agent-name" class="font-bold text-sm text-white">戶外品牌商務口說教練</h2>
+                <span id="active-agent-category" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">戶外機能紡織</span>
               </div>
-              <p id="active-agent-desc" class="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">重組與精練口語表達，使用地道美式英語與習慣用語。</p>
+              <p id="active-agent-desc" class="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">專為研發總監打造的國際品牌 (Patagonia 等) 戶外機能布料與樣衣口語對話教練。</p>
             </div>
           </div>
         </div>

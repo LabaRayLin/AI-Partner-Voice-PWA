@@ -1,6 +1,6 @@
 {
-  "name": "AI Partner & Agents - 智能英語口語助教",
-  "short_name": "AI Partner",
+  "name": "英語口語 - AI Partner & Agents",
+  "short_name": "英語口語",
   "description": "專為英語學習打造的 AI 口語對話與智能助教 PWA 應用",
   "start_url": "./index.html",
   "display": "standalone",
