@@ -169,13 +169,11 @@ class App {
     });
 
     if (!matched) {
-      // If cleanCurrent looks like a model from another provider (e.g. gpt-4o-mini when provider is gemini), default to 1st model!
       const isOtherProviderModel = cleanCurrent.startsWith('gpt-') || cleanCurrent.startsWith('deepseek') || cleanCurrent.startsWith('llama') || cleanCurrent.startsWith('gemini');
       if (isOtherProviderModel || !cleanCurrent) {
         this.el.modelSelect.value = models[0].value;
         this.el.modelCustomInput.classList.add('hidden');
       } else {
-        // True custom model typed by user
         this.el.modelSelect.value = 'custom';
         this.el.modelCustomInput.classList.remove('hidden');
         this.el.modelCustomInput.value = cleanCurrent;
@@ -203,6 +201,10 @@ class App {
     if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || !model)) {
       model = 'gemini-2.0-flash';
     }
+
+    const speechRate = parseFloat(this.el.speechRateInput.value);
+    const autoPlay = this.el.autoPlayCheck.checked;
+    const voiceName = this.el.voiceSelect.value;
 
     await db.saveSetting('provider', provider);
     await db.saveSetting('apiKey', apiKey);
