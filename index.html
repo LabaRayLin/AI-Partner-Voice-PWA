@@ -247,7 +247,11 @@
         <div>
           <label class="block font-medium text-slate-300 mb-1">模型選擇 (Model Name)</label>
           <select id="setting-model" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono mb-1.5">
-            <!-- Dynamically populated options -->
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash (推薦 / 極速最新)</option>
+            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite (高輕量)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (經典熱門)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (強大推理)</option>
+            <option value="custom">✏️ 自訂模型名稱 (Custom Model)</option>
           </select>
           <input type="text" id="setting-model-custom" placeholder="輸入自訂 Model 名稱..." class="hidden w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
         </div>

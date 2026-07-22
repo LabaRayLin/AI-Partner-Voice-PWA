@@ -119,7 +119,16 @@ class App {
     const apiKey = await db.getSetting('apiKey', '');
     const baseUrl = await db.getSetting('baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai');
     let model = await db.getSetting('model', 'gemini-2.0-flash');
-    if (model) model = model.replace(/^models\//, ''); // Clean old saved values
+    if (model) model = model.replace(/^models\//, '');
+
+    // Auto-fix model mismatch
+    if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || model.startsWith('llama'))) {
+      model = 'gemini-2.0-flash';
+    } else if (provider === 'openai' && model.startsWith('gemini')) {
+      model = 'gpt-4o-mini';
+    } else if (provider === 'deepseek' && model.startsWith('gemini')) {
+      model = 'deepseek-chat';
+    }
 
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
@@ -138,7 +147,6 @@ class App {
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
 
-    this.updateProviderDefaults(provider, false);
     this.populateModelDropdown(provider, model);
   }
 
@@ -161,7 +169,6 @@ class App {
     });
 
     if (!matched && cleanCurrent) {
-      // Custom model not in standard list
       this.el.modelSelect.value = 'custom';
       this.el.modelCustomInput.classList.remove('hidden');
       this.el.modelCustomInput.value = cleanCurrent;
@@ -180,11 +187,7 @@ class App {
       ? this.el.modelCustomInput.value.trim() 
       : this.el.modelSelect.value;
 
-    if (model) model = model.replace(/^models\//, ''); // Ensure no models/ prefix
-
-    const speechRate = parseFloat(this.el.speechRateInput.value);
-    const autoPlay = this.el.autoPlayCheck.checked;
-    const voiceName = this.el.voiceSelect.value;
+    if (model) model = model.replace(/^models\//, '');
 
     await db.saveSetting('provider', provider);
     await db.saveSetting('apiKey', apiKey);
@@ -428,7 +431,7 @@ class App {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'flex items-center gap-1 hover:text-indigo-400 transition-colors py-0.5 px-1.5 rounded hover:bg-slate-700/40';
       copyBtn.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         複製
       `;
       copyBtn.onclick = () => {
@@ -617,6 +620,12 @@ class App {
     });
 
     this.el.openSettingsBtn.addEventListener('click', async () => {
+      // Sync form values with current LLM state
+      this.el.providerSelect.value = this.llm.provider;
+      this.el.apiKeyInput.value = this.llm.apiKey;
+      this.el.baseUrlInput.value = this.llm.baseUrl;
+      this.populateModelDropdown(this.llm.provider, this.llm.model);
+
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
       voices.forEach(v => {

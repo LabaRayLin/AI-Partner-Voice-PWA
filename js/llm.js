@@ -50,11 +50,15 @@ export class LLMClient {
       }
     }
 
-    // Google Gemini OpenAI endpoint (https://generativelanguage.googleapis.com/v1beta/openai/chat/completions)
-    // expects model names WITHOUT 'models/' prefix (e.g. 'gemini-2.0-flash', 'gemini-1.5-flash')
     let modelName = this.model.trim();
+
+    // Safeguard for Gemini
     if (this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) {
       modelName = modelName.replace(/^models\//, '');
+      // If an OpenAI or non-Gemini model is set (e.g. gpt-4o-mini), fallback to gemini-2.0-flash
+      if (modelName.startsWith('gpt-') || modelName.startsWith('deepseek') || modelName.startsWith('llama')) {
+        modelName = 'gemini-2.0-flash';
+      }
     }
 
     const payload = {
