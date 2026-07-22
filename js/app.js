@@ -7,6 +7,38 @@ import { PRESET_AGENTS, getAvatarUrl } from './agents.js';
 import { LLMClient } from './llm.js';
 import { speech } from './speech.js';
 
+const PROVIDER_MODELS = {
+  gemini: [
+    { value: 'models/gemini-2.0-flash', label: 'Gemini 2.0 Flash (推薦 / 極速最新)' },
+    { value: 'models/gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite (高輕量)' },
+    { value: 'models/gemini-1.5-flash', label: 'Gemini 1.5 Flash (經典熱門)' },
+    { value: 'models/gemini-1.5-pro', label: 'Gemini 1.5 Pro (強大推理)' },
+    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
+  ],
+  openai: [
+    { value: 'gpt-4o-mini', label: 'GPT-4o mini (推薦 / 快速經濟)' },
+    { value: 'gpt-4o', label: 'GPT-4o (旗艦全能)' },
+    { value: 'o3-mini', label: 'o3-mini (推理模型)' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
+  ],
+  deepseek: [
+    { value: 'deepseek-chat', label: 'DeepSeek-V3 (deepseek-chat 推薦)' },
+    { value: 'deepseek-reasoner', label: 'DeepSeek-R1 (deepseek-reasoner 深度思考)' },
+    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
+  ],
+  ollama: [
+    { value: 'llama3.2', label: 'Llama 3.2 (Local)' },
+    { value: 'llama3.1', label: 'Llama 3.1 (Local)' },
+    { value: 'qwen2.5', label: 'Qwen 2.5 (Local)' },
+    { value: 'gemma2', label: 'Gemma 2 (Local)' },
+    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
+  ],
+  custom: [
+    { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
+  ]
+};
+
 class App {
   constructor() {
     this.agents = [];
@@ -60,7 +92,8 @@ class App {
       providerSelect: document.getElementById('setting-provider'),
       apiKeyInput: document.getElementById('setting-api-key'),
       baseUrlInput: document.getElementById('setting-base-url'),
-      modelInput: document.getElementById('setting-model'),
+      modelSelect: document.getElementById('setting-model'),
+      modelCustomInput: document.getElementById('setting-model-custom'),
       speechRateInput: document.getElementById('setting-speech-rate'),
       speechRateVal: document.getElementById('setting-speech-rate-val'),
       autoPlayCheck: document.getElementById('setting-autoplay'),
@@ -85,7 +118,7 @@ class App {
     const provider = await db.getSetting('provider', 'gemini');
     const apiKey = await db.getSetting('apiKey', '');
     const baseUrl = await db.getSetting('baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai');
-    const model = await db.getSetting('model', 'gemini-2.0-flash');
+    const model = await db.getSetting('model', 'models/gemini-2.0-flash');
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
     const voiceName = await db.getSetting('voiceName', '');
@@ -99,22 +132,57 @@ class App {
     this.el.providerSelect.value = provider;
     this.el.apiKeyInput.value = apiKey;
     this.el.baseUrlInput.value = baseUrl;
-    this.el.modelInput.value = model;
     this.el.speechRateInput.value = speechRate;
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
 
     this.updateProviderDefaults(provider, false);
+    this.populateModelDropdown(provider, model);
+  }
+
+  populateModelDropdown(provider, currentModel) {
+    const models = PROVIDER_MODELS[provider] || PROVIDER_MODELS.custom;
+    this.el.modelSelect.innerHTML = '';
+
+    let matched = false;
+    models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.value;
+      opt.textContent = m.label;
+      if (m.value === currentModel) {
+        opt.selected = true;
+        matched = true;
+      }
+      this.el.modelSelect.appendChild(opt);
+    });
+
+    if (!matched && currentModel) {
+      // Custom model not in standard list
+      this.el.modelSelect.value = 'custom';
+      this.el.modelCustomInput.classList.remove('hidden');
+      this.el.modelCustomInput.value = currentModel;
+    } else if (this.el.modelSelect.value === 'custom') {
+      this.el.modelCustomInput.classList.remove('hidden');
+    } else {
+      this.el.modelCustomInput.classList.add('hidden');
+    }
   }
 
   async saveSettings() {
     const provider = this.el.providerSelect.value;
     const apiKey = this.el.apiKeyInput.value.trim();
     const baseUrl = this.el.baseUrlInput.value.trim();
-    const model = this.el.modelInput.value.trim();
+    let model = this.el.modelSelect.value === 'custom' 
+      ? this.el.modelCustomInput.value.trim() 
+      : this.el.modelSelect.value;
+
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
     const voiceName = this.el.voiceSelect.value;
+
+    if ((provider === 'gemini' || baseUrl.includes('googleapis.com')) && model && !model.startsWith('models/')) {
+      model = `models/${model}`;
+    }
 
     await db.saveSetting('provider', provider);
     await db.saveSetting('apiKey', apiKey);
@@ -134,20 +202,20 @@ class App {
   }
 
   updateProviderDefaults(provider, overwrite = true) {
-    if (!overwrite) return;
-    if (provider === 'gemini') {
-      this.el.baseUrlInput.value = 'https://generativelanguage.googleapis.com/v1beta/openai';
-      this.el.modelInput.value = 'gemini-2.0-flash';
-    } else if (provider === 'openai') {
-      this.el.baseUrlInput.value = 'https://api.openai.com/v1';
-      this.el.modelInput.value = 'gpt-4o-mini';
-    } else if (provider === 'deepseek') {
-      this.el.baseUrlInput.value = 'https://api.deepseek.com/v1';
-      this.el.modelInput.value = 'deepseek-chat';
-    } else if (provider === 'ollama') {
-      this.el.baseUrlInput.value = 'http://localhost:11434/v1';
-      this.el.modelInput.value = 'llama3.2';
-      this.el.apiKeyInput.value = 'ollama';
+    if (overwrite) {
+      if (provider === 'gemini') {
+        this.el.baseUrlInput.value = 'https://generativelanguage.googleapis.com/v1beta/openai';
+      } else if (provider === 'openai') {
+        this.el.baseUrlInput.value = 'https://api.openai.com/v1';
+      } else if (provider === 'deepseek') {
+        this.el.baseUrlInput.value = 'https://api.deepseek.com/v1';
+      } else if (provider === 'ollama') {
+        this.el.baseUrlInput.value = 'http://localhost:11434/v1';
+        this.el.apiKeyInput.value = 'ollama';
+      }
+
+      const defaultModel = (PROVIDER_MODELS[provider] || PROVIDER_MODELS.custom)[0].value;
+      this.populateModelDropdown(provider, defaultModel);
     }
   }
 
@@ -358,7 +426,7 @@ class App {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'flex items-center gap-1 hover:text-indigo-400 transition-colors py-0.5 px-1.5 rounded hover:bg-slate-700/40';
       copyBtn.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         複製
       `;
       copyBtn.onclick = () => {
@@ -425,7 +493,6 @@ class App {
       { role: 'system', content: this.currentAgent.prompt || 'You are a helpful English Tutor.' }
     ];
 
-    // Send last 10 messages for context
     const recent = this.messages.slice(-10);
     recent.forEach(m => historyPayload.push({ role: m.role, content: m.content }));
 
@@ -455,16 +522,13 @@ class App {
         }
       );
 
-      // Save complete assistant message
       await db.saveMessage(aiMsg);
       this.messages.push(aiMsg);
 
-      // Auto-play voice if enabled
       if (speech.autoPlay) {
         speech.speak(fullResponse);
       }
 
-      // Update chat session timestamp
       this.currentChat.updatedAt = new Date().toISOString();
       await db.saveChat(this.currentChat);
 
@@ -530,7 +594,6 @@ class App {
 
   // --- Event Bindings ---
   bindEvents() {
-    // Send message on Enter (Shift+Enter for new line)
     this.el.chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -543,7 +606,6 @@ class App {
 
     this.el.newChatBtn.addEventListener('click', () => this.createNewChat());
 
-    // Sidebar Toggles
     this.el.sidebarToggleBtn.addEventListener('click', () => {
       this.el.sidebar.classList.toggle('hidden');
     });
@@ -552,9 +614,7 @@ class App {
       this.el.sidebar.classList.toggle('hidden');
     });
 
-    // Settings Modal
     this.el.openSettingsBtn.addEventListener('click', async () => {
-      // Refresh voices list in dropdown
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
       voices.forEach(v => {
@@ -575,11 +635,19 @@ class App {
       this.updateProviderDefaults(e.target.value, true);
     });
 
+    this.el.modelSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        this.el.modelCustomInput.classList.remove('hidden');
+        this.el.modelCustomInput.focus();
+      } else {
+        this.el.modelCustomInput.classList.add('hidden');
+      }
+    });
+
     this.el.speechRateInput.addEventListener('input', (e) => {
       this.el.speechRateVal.textContent = `${e.target.value}x`;
     });
 
-    // Add Custom Agent Modal
     this.el.addAgentBtn.addEventListener('click', () => this.openModal(this.el.agentModal));
     this.el.closeAgentBtn.addEventListener('click', () => this.closeModal(this.el.agentModal));
     

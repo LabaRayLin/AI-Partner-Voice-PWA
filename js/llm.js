@@ -1,14 +1,14 @@
 /**
  * llm.js - Multi-Provider LLM Integration
- * Supports: OpenAI, DeepSeek, Ollama (Local), Google Gemini, Custom OpenAI-Compatible APIs
+ * Supports: Google Gemini, OpenAI, DeepSeek, Ollama (Local), Custom OpenAI-Compatible APIs
  */
 
 export class LLMClient {
   constructor(config = {}) {
-    this.provider = config.provider || 'openai'; // 'openai' | 'deepseek' | 'ollama' | 'custom'
+    this.provider = config.provider || 'gemini'; // 'gemini' | 'openai' | 'deepseek' | 'ollama' | 'custom'
     this.apiKey = config.apiKey || '';
-    this.baseUrl = config.baseUrl || 'https://api.openai.com/v1';
-    this.model = config.model || 'gpt-4o-mini';
+    this.baseUrl = config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/openai';
+    this.model = config.model || 'models/gemini-2.0-flash';
     this.temperature = config.temperature ?? 0.7;
   }
 
@@ -45,10 +45,22 @@ export class LLMClient {
 
     if (this.apiKey) {
       headers['Authorization'] = `Bearer ${this.apiKey}`;
+      // Extra compatibility for Google Gemini API
+      if (this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) {
+        headers['x-goog-api-key'] = this.apiKey;
+      }
+    }
+
+    // Auto-fix model format for Gemini if user typed 'gemini-2.0-flash' or 'gemini-1.5-flash'
+    let modelName = this.model.trim();
+    if (this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) {
+      if (!modelName.startsWith('models/')) {
+        modelName = `models/${modelName}`;
+      }
     }
 
     const payload = {
-      model: this.model,
+      model: modelName,
       messages: messages,
       temperature: this.temperature,
       stream: true,

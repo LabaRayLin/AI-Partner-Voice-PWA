@@ -156,7 +156,7 @@
                 <h2 id="active-agent-name" class="font-bold text-sm text-white">英語教練 (English Coach)</h2>
                 <span id="active-agent-category" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">口語重組</span>
               </div>
-              <p id="active-agent-desc" class="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">重組與精煉口語表達，使用地道美式英語與習慣用語。</p>
+              <p id="active-agent-desc" class="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">重組與精練口語表達，使用地道美式英語與習慣用語。</p>
             </div>
           </div>
         </div>
@@ -245,8 +245,11 @@
         </div>
 
         <div>
-          <label class="block font-medium text-slate-300 mb-1">Model Name</label>
-          <input type="text" id="setting-model" placeholder="gemini-2.0-flash" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
+          <label class="block font-medium text-slate-300 mb-1">模型選擇 (Model Name)</label>
+          <select id="setting-model" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono mb-1.5">
+            <!-- Dynamically populated options -->
+          </select>
+          <input type="text" id="setting-model-custom" placeholder="輸入自訂 Model 名稱..." class="hidden w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono" />
         </div>
 
         <div class="pt-2 border-t border-slate-800 space-y-3">
