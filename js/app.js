@@ -9,10 +9,10 @@ import { speech } from './speech.js';
 
 const PROVIDER_MODELS = {
   gemini: [
-    { value: 'models/gemini-2.0-flash', label: 'Gemini 2.0 Flash (推薦 / 極速最新)' },
-    { value: 'models/gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite (高輕量)' },
-    { value: 'models/gemini-1.5-flash', label: 'Gemini 1.5 Flash (經典熱門)' },
-    { value: 'models/gemini-1.5-pro', label: 'Gemini 1.5 Pro (強大推理)' },
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (推薦 / 極速最新)' },
+    { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite (高輕量)' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (經典熱門)' },
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (強大推理)' },
     { value: 'custom', label: '✏️ 自訂模型名稱 (Custom Model)' }
   ],
   openai: [
@@ -118,7 +118,9 @@ class App {
     const provider = await db.getSetting('provider', 'gemini');
     const apiKey = await db.getSetting('apiKey', '');
     const baseUrl = await db.getSetting('baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai');
-    const model = await db.getSetting('model', 'models/gemini-2.0-flash');
+    let model = await db.getSetting('model', 'gemini-2.0-flash');
+    if (model) model = model.replace(/^models\//, ''); // Clean old saved values
+
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
     const voiceName = await db.getSetting('voiceName', '');
@@ -144,23 +146,25 @@ class App {
     const models = PROVIDER_MODELS[provider] || PROVIDER_MODELS.custom;
     this.el.modelSelect.innerHTML = '';
 
+    const cleanCurrent = (currentModel || '').replace(/^models\//, '');
     let matched = false;
+
     models.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.value;
       opt.textContent = m.label;
-      if (m.value === currentModel) {
+      if (m.value === cleanCurrent) {
         opt.selected = true;
         matched = true;
       }
       this.el.modelSelect.appendChild(opt);
     });
 
-    if (!matched && currentModel) {
+    if (!matched && cleanCurrent) {
       // Custom model not in standard list
       this.el.modelSelect.value = 'custom';
       this.el.modelCustomInput.classList.remove('hidden');
-      this.el.modelCustomInput.value = currentModel;
+      this.el.modelCustomInput.value = cleanCurrent;
     } else if (this.el.modelSelect.value === 'custom') {
       this.el.modelCustomInput.classList.remove('hidden');
     } else {
@@ -176,13 +180,11 @@ class App {
       ? this.el.modelCustomInput.value.trim() 
       : this.el.modelSelect.value;
 
+    if (model) model = model.replace(/^models\//, ''); // Ensure no models/ prefix
+
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
     const voiceName = this.el.voiceSelect.value;
-
-    if ((provider === 'gemini' || baseUrl.includes('googleapis.com')) && model && !model.startsWith('models/')) {
-      model = `models/${model}`;
-    }
 
     await db.saveSetting('provider', provider);
     await db.saveSetting('apiKey', apiKey);
