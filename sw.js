@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-partner-pwa-v1';
+const CACHE_NAME = 'ai-partner-pwa-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,7 +13,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell');
+      console.log('[Service Worker] Caching app shell v2');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -37,7 +37,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first for API endpoints, Cache first for local static assets
   if (event.request.url.includes('/chat/completions') || event.request.url.includes('api.dicebear.com')) {
     return; // Pass through to network
   }
