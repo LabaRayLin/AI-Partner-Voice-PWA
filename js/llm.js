@@ -6,7 +6,7 @@
 export class LLMClient {
   constructor(config = {}) {
     this.apiKey = config.apiKey || '';
-    this.model = config.model || 'gemini-2.0-flash';
+    this.model = config.model || 'gemini-1.5-flash';
     this.temperature = config.temperature ?? 0.7;
   }
 
@@ -24,29 +24,46 @@ export class LLMClient {
    */
   async sendMessageStream(messages, onChunk) {
     if (!this.apiKey) {
-      throw new Error('請先輸入 Google Gemini API Key！');
+      throw new Error('請先在設定中輸入有效的 Google Gemini API Key！');
     }
 
-    let selectedModel = (this.model || 'gemini-2.0-flash').replace(/^models\//, '');
+    const primaryModel = (this.model || 'gemini-1.5-flash').replace(/^models\//, '');
+    
+    // Candidate model list for maximum compatibility
+    const modelCandidates = Array.from(new Set([
+      primaryModel,
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash'
+    ]));
 
-    try {
-      return await this._callGeminiAPI(selectedModel, messages, onChunk);
-    } catch (err) {
-      console.warn(`[Gemini API] Primary model ${selectedModel} failed:`, err.message);
-      // Auto Fallback if the selected model is not available
-      if (selectedModel !== 'gemini-1.5-flash') {
-        console.info('[Gemini API] Automatically falling back to gemini-1.5-flash...');
-        return await this._callGeminiAPI('gemini-1.5-flash', messages, onChunk);
+    let lastError = null;
+
+    for (const modelName of modelCandidates) {
+      // Try v1 stable endpoint first, then v1beta
+      for (const apiVer of ['v1', 'v1beta']) {
+        try {
+          console.log(`[Gemini API] Trying ${apiVer} with model: ${modelName}`);
+          return await this._callGeminiStream(apiVer, modelName, messages, onChunk);
+        } catch (err) {
+          console.warn(`[Gemini API Warning] ${apiVer}/${modelName} failed:`, err.message);
+          lastError = err;
+          // If it's an API Key error (400 / 403), don't keep looping model names
+          if (err.message.includes('API key not valid') || err.message.includes('400') || err.message.includes('403')) {
+            throw err;
+          }
+        }
       }
-      throw err;
     }
+
+    throw lastError || new Error('連線 Google Gemini API 失敗，請確認 API Key 是否正確且已開通權限。');
   }
 
-  async _callGeminiAPI(modelName, messages, onChunk) {
+  async _callGeminiStream(apiVersion, modelName, messages, onChunk) {
     const cleanModel = modelName.replace(/^models\//, '');
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:streamGenerateContent?alt=sse&key=${encodeURIComponent(this.apiKey)}`;
+    const endpoint = `https://generativelanguage.googleapis.com/${apiVersion}/models/${cleanModel}:streamGenerateContent?alt=sse&key=${encodeURIComponent(this.apiKey)}`;
 
-    // Separate system instruction from conversation contents
     let systemInstructionText = '';
     const contentsPayload = [];
 
@@ -54,7 +71,6 @@ export class LLMClient {
       if (msg.role === 'system') {
         systemInstructionText += (systemInstructionText ? '\n' : '') + msg.content;
       } else {
-        // Gemini expects 'user' or 'model' (not 'assistant')
         const role = (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user';
         contentsPayload.push({
           role: role,
@@ -92,7 +108,7 @@ export class LLMClient {
         const json = JSON.parse(errText);
         parsedMessage = json.error?.message || errText;
       } catch (e) {}
-      throw new Error(`Google Gemini API 錯誤 (${response.status}): ${parsedMessage}`);
+      throw new Error(`(${response.status}): ${parsedMessage}`);
     }
 
     const reader = response.body.getReader();
@@ -106,7 +122,7 @@ export class LLMClient {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         const trimmed = line.trim();
@@ -127,10 +143,14 @@ export class LLMClient {
               }
             }
           } catch (e) {
-            console.warn('Error parsing SSE JSON:', line, e);
+            console.warn('SSE Parse error:', e);
           }
         }
       }
+    }
+
+    if (!fullContent.trim()) {
+      throw new Error('Gemini API 未傳回文字回應，請再試一次。');
     }
 
     return fullContent;

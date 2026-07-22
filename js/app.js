@@ -82,7 +82,7 @@ class App {
   // --- Settings ---
   async loadSettings() {
     const apiKey = await db.getSetting('apiKey', '');
-    let model = await db.getSetting('model', 'gemini-2.0-flash');
+    let model = await db.getSetting('model', 'gemini-1.5-flash');
     if (model) model = model.replace(/^models\//, '');
 
     const speechRate = await db.getSetting('speechRate', 1.0);
@@ -96,7 +96,7 @@ class App {
 
     // Populate Settings UI
     this.el.apiKeyInput.value = apiKey;
-    this.el.modelSelect.value = model || 'gemini-2.0-flash';
+    this.el.modelSelect.value = model || 'gemini-1.5-flash';
     this.el.speechRateInput.value = speechRate;
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
@@ -104,7 +104,7 @@ class App {
 
   async saveSettings() {
     const apiKey = this.el.apiKeyInput.value.trim();
-    let model = this.el.modelSelect.value || 'gemini-2.0-flash';
+    let model = this.el.modelSelect.value || 'gemini-1.5-flash';
     model = model.replace(/^models\//, '');
 
     const speechRate = parseFloat(this.el.speechRateInput.value);
@@ -524,7 +524,7 @@ class App {
     this.el.openSettingsBtn.addEventListener('click', async () => {
       // Sync form values with current LLM state
       this.el.apiKeyInput.value = this.llm.apiKey;
-      this.el.modelSelect.value = this.llm.model || 'gemini-2.0-flash';
+      this.el.modelSelect.value = this.llm.model || 'gemini-1.5-flash';
 
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
