@@ -77,7 +77,7 @@
   <div class="flex-1 flex overflow-hidden relative">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-80 bg-slate-900/90 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full">
+    <aside id="sidebar" class="w-80 bg-slate-900/95 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full shadow-2xl">
       
       <!-- Sidebar Header -->
       <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
@@ -94,7 +94,7 @@
         </div>
 
         <button id="sidebar-toggle-btn" class="lg:hidden text-slate-400 hover:text-white p-1">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
 
@@ -134,14 +134,21 @@
       </div>
 
       <!-- Sidebar Footer -->
-      <div class="p-3 border-t border-slate-800/80 flex items-center justify-between bg-slate-900/60 text-xs text-slate-400">
-        <span class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          IndexedDB 本地儲存
-        </span>
-        <button id="install-pwa-btn" class="hidden flex items-center gap-1 px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors">
-          📲 安裝 PWA App
+      <div class="p-3 border-t border-slate-800/80 space-y-2 bg-slate-900/80 text-xs">
+        <button id="sidebar-settings-btn" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          ⚙️ 設定 Gemini API Key
         </button>
+
+        <div class="flex items-center justify-between text-slate-400 pt-1">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            IndexedDB 本地儲存
+          </span>
+          <button id="install-pwa-btn" class="hidden flex items-center gap-1 px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors">
+            📲 安裝 App
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -149,30 +156,30 @@
     <main class="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
       
       <!-- Top Navigation Header -->
-      <header class="h-16 px-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md flex items-center justify-between z-20">
-        <div class="flex items-center gap-3">
-          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1">
+      <header class="h-16 px-3 sm:px-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md flex items-center justify-between z-20 gap-2">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1 flex-shrink-0" title="開啟選單">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
           
           <!-- Current Active Agent Header -->
-          <div class="flex items-center gap-3">
-            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=EnglishCoach" alt="Avatar" class="w-9 h-9 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 shadow-md" />
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 id="active-agent-name" class="font-bold text-sm text-white">戶外品牌商務口說教練</h2>
-                <span id="active-agent-category" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">戶外機能紡織</span>
+          <div class="flex items-center gap-2 min-w-0">
+            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=OutdoorCoach" alt="Avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 flex-shrink-0" />
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h2 id="active-agent-name" class="font-bold text-xs sm:text-sm text-white truncate max-w-[120px] sm:max-w-none">戶外品牌商務口說教練</h2>
+                <span id="active-agent-category" class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 flex-shrink-0">戶外機能紡織</span>
               </div>
-              <p id="active-agent-desc" class="text-xs text-slate-400 truncate max-w-xs sm:max-w-md">專為研發總監打造的國際品牌 (Patagonia 等) 戶外機能布料與樣衣口語對話教練。</p>
+              <p id="active-agent-desc" class="hidden md:block text-xs text-slate-400 truncate max-w-xs sm:max-w-md">專為研發總監打造的國際品牌 (Patagonia 等) 戶外機能布料與樣衣口語對話教練。</p>
             </div>
           </div>
         </div>
 
         <!-- Top Right Actions -->
-        <div class="flex items-center gap-2">
-          <button id="open-settings-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-200 transition-all active:scale-95">
-            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            ⚙️ Gemini Key 設定
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button id="open-settings-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/80 text-xs text-white shadow-md transition-all active:scale-95">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>⚙️ 設定 Key</span>
           </button>
         </div>
       </header>
@@ -185,7 +192,10 @@
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
           </div>
           <h3 class="text-lg font-bold text-slate-300 mb-1">開始與您的 AI 導師對話吧！</h3>
-          <p class="text-xs text-slate-400 max-w-sm">您可以直接輸入文字，或是點擊下方麥克風進行語音口語練習，AI 導師將即時為您朗讀與診斷。</p>
+          <p class="text-xs text-slate-400 max-w-sm mb-4">您可以直接輸入文字，或是點擊下方麥克風進行語音口語練習，AI 導師將即時為您朗讀與診斷。</p>
+          <button id="empty-state-settings-btn" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+            🔑 點此設定 Google Gemini API Key
+          </button>
         </div>
       </div>
 

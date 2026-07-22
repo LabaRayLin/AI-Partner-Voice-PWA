@@ -39,6 +39,7 @@ class App {
       // Messages Container
       messagesContainer: document.getElementById('messages-container'),
       messagesEmptyState: document.getElementById('messages-empty-state'),
+      emptyStateSettingsBtn: document.getElementById('empty-state-settings-btn'),
       
       // Inputs
       chatInput: document.getElementById('chat-input'),
@@ -47,9 +48,10 @@ class App {
       micPulse: document.getElementById('mic-pulse'),
       micStatusText: document.getElementById('mic-status-text'),
       
-      // Modals
+      // Modals & Settings Entry Points
       settingsModal: document.getElementById('settings-modal'),
       openSettingsBtn: document.getElementById('open-settings-btn'),
+      sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
       closeSettingsBtn: document.getElementById('close-settings-btn'),
       saveSettingsBtn: document.getElementById('save-settings-btn'),
       
@@ -185,7 +187,12 @@ class App {
         </div>
       `;
 
-      card.onclick = () => this.selectAgent(agent);
+      card.onclick = () => {
+        this.selectAgent(agent);
+        if (window.innerWidth < 1024) {
+          this.el.sidebar.classList.add('hidden');
+        }
+      };
       this.el.agentsList.appendChild(card);
     });
   }
@@ -245,6 +252,9 @@ class App {
           this.deleteChat(chat.id);
         } else {
           this.selectChat(chat);
+          if (window.innerWidth < 1024) {
+            this.el.sidebar.classList.add('hidden');
+          }
         }
       };
 
@@ -324,14 +334,14 @@ class App {
       : this.currentAgent?.avatarUrl || PRESET_AGENTS[0].avatarUrl;
 
     const contentBox = document.createElement('div');
-    contentBox.className = `max-w-[82%] sm:max-w-[75%] rounded-2xl p-4 shadow-md leading-relaxed ${
+    contentBox.className = `max-w-[85%] sm:max-w-[75%] rounded-2xl p-3.5 sm:p-4 shadow-md leading-relaxed ${
       isUser
         ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-tr-none'
         : 'bg-slate-800/90 text-slate-100 border border-slate-700/60 rounded-tl-none backdrop-blur-md'
     }`;
 
     const textDiv = document.createElement('div');
-    textDiv.className = 'prose prose-invert prose-sm max-w-none break-words space-y-2';
+    textDiv.className = 'prose prose-invert prose-sm max-w-none break-words space-y-2 text-xs sm:text-sm';
     textDiv.innerHTML = this.formatMarkdown(msg.content);
 
     contentBox.appendChild(textDiv);
@@ -351,7 +361,7 @@ class App {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'flex items-center gap-1 hover:text-indigo-400 transition-colors py-0.5 px-1.5 rounded hover:bg-slate-700/40';
       copyBtn.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         複製
       `;
       copyBtn.onclick = () => {
@@ -539,8 +549,7 @@ class App {
       this.el.sidebar.classList.toggle('hidden');
     });
 
-    this.el.openSettingsBtn.addEventListener('click', async () => {
-      // Sync form values with current LLM state
+    const triggerOpenSettings = async () => {
       this.el.apiKeyInput.value = this.llm.apiKey;
       this.el.modelSelect.value = this.llm.model || 'gemini-2.5-flash';
 
@@ -555,7 +564,15 @@ class App {
       });
 
       this.openModal(this.el.settingsModal);
-    });
+    };
+
+    this.el.openSettingsBtn.addEventListener('click', triggerOpenSettings);
+    if (this.el.sidebarSettingsBtn) {
+      this.el.sidebarSettingsBtn.addEventListener('click', triggerOpenSettings);
+    }
+    if (this.el.emptyStateSettingsBtn) {
+      this.el.emptyStateSettingsBtn.addEventListener('click', triggerOpenSettings);
+    }
 
     this.el.closeSettingsBtn.addEventListener('click', () => this.closeModal(this.el.settingsModal));
     this.el.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
