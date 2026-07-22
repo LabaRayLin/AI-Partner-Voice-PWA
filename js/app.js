@@ -134,17 +134,31 @@ class App {
   async initAgents() {
     let savedAgents = await db.getAgents();
 
-    if (savedAgents.length === 0) {
-      for (const preset of PRESET_AGENTS) {
+    // Upsert preset agents if missing
+    for (const preset of PRESET_AGENTS) {
+      const exists = savedAgents.some(a => a.id === preset.id);
+      if (!exists) {
         await db.saveAgent(preset);
       }
-      savedAgents = await db.getAgents();
     }
+
+    savedAgents = await db.getAgents();
+
+    // Sort to keep PRESET_AGENTS order first
+    const presetIds = PRESET_AGENTS.map(p => p.id);
+    savedAgents.sort((a, b) => {
+      const indexA = presetIds.indexOf(a.id);
+      const indexB = presetIds.indexOf(b.id);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return 0;
+    });
 
     this.agents = savedAgents;
     this.renderAgents();
 
-    if (this.agents.length > 0) {
+    if (this.agents.length > 0 && !this.currentAgent) {
       this.selectAgent(this.agents[0]);
     }
   }
@@ -337,7 +351,7 @@ class App {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'flex items-center gap-1 hover:text-indigo-400 transition-colors py-0.5 px-1.5 rounded hover:bg-slate-700/40';
       copyBtn.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         複製
       `;
       copyBtn.onclick = () => {
