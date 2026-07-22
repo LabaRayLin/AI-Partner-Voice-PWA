@@ -50,13 +50,13 @@ export class LLMClient {
       }
     }
 
-    let modelName = this.model.trim();
+    let modelName = (this.model || '').trim();
 
-    // Safeguard for Gemini
+    // Bulletproof Safeguard for Gemini API
     if (this.provider === 'gemini' || this.baseUrl.includes('googleapis.com')) {
       modelName = modelName.replace(/^models\//, '');
-      // If an OpenAI or non-Gemini model is set (e.g. gpt-4o-mini), fallback to gemini-2.0-flash
-      if (modelName.startsWith('gpt-') || modelName.startsWith('deepseek') || modelName.startsWith('llama')) {
+      // If an OpenAI or non-Gemini model is set (e.g. gpt-4o-mini, deepseek, llama), fallback to gemini-2.0-flash
+      if (!modelName || modelName.startsWith('gpt-') || modelName.startsWith('deepseek') || modelName.startsWith('llama') || modelName.startsWith('o1') || modelName.startsWith('o3')) {
         modelName = 'gemini-2.0-flash';
       }
     }

@@ -121,8 +121,8 @@ class App {
     let model = await db.getSetting('model', 'gemini-2.0-flash');
     if (model) model = model.replace(/^models\//, '');
 
-    // Auto-fix model mismatch
-    if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || model.startsWith('llama'))) {
+    // Auto-fix model mismatch between provider and saved model
+    if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || model.startsWith('llama') || !model)) {
       model = 'gemini-2.0-flash';
     } else if (provider === 'openai' && model.startsWith('gemini')) {
       model = 'gpt-4o-mini';
@@ -161,21 +161,31 @@ class App {
       const opt = document.createElement('option');
       opt.value = m.value;
       opt.textContent = m.label;
-      if (m.value === cleanCurrent) {
+      if (m.value === cleanCurrent && m.value !== 'custom') {
         opt.selected = true;
         matched = true;
       }
       this.el.modelSelect.appendChild(opt);
     });
 
-    if (!matched && cleanCurrent) {
-      this.el.modelSelect.value = 'custom';
-      this.el.modelCustomInput.classList.remove('hidden');
-      this.el.modelCustomInput.value = cleanCurrent;
-    } else if (this.el.modelSelect.value === 'custom') {
-      this.el.modelCustomInput.classList.remove('hidden');
+    if (!matched) {
+      // If cleanCurrent looks like a model from another provider (e.g. gpt-4o-mini when provider is gemini), default to 1st model!
+      const isOtherProviderModel = cleanCurrent.startsWith('gpt-') || cleanCurrent.startsWith('deepseek') || cleanCurrent.startsWith('llama') || cleanCurrent.startsWith('gemini');
+      if (isOtherProviderModel || !cleanCurrent) {
+        this.el.modelSelect.value = models[0].value;
+        this.el.modelCustomInput.classList.add('hidden');
+      } else {
+        // True custom model typed by user
+        this.el.modelSelect.value = 'custom';
+        this.el.modelCustomInput.classList.remove('hidden');
+        this.el.modelCustomInput.value = cleanCurrent;
+      }
     } else {
-      this.el.modelCustomInput.classList.add('hidden');
+      if (this.el.modelSelect.value === 'custom') {
+        this.el.modelCustomInput.classList.remove('hidden');
+      } else {
+        this.el.modelCustomInput.classList.add('hidden');
+      }
     }
   }
 
@@ -188,6 +198,11 @@ class App {
       : this.el.modelSelect.value;
 
     if (model) model = model.replace(/^models\//, '');
+
+    // Final sanity check
+    if (provider === 'gemini' && (model.startsWith('gpt-') || model.startsWith('deepseek') || !model)) {
+      model = 'gemini-2.0-flash';
+    }
 
     await db.saveSetting('provider', provider);
     await db.saveSetting('apiKey', apiKey);
