@@ -1,7 +1,6 @@
 /**
- * speech.js - Web Native Speech Recognition (STT) & Pure Cloud HD Neural Audio Synthesis (TTS)
- * 100% High-Definition Natural Human Voices (US/UK/AU Accents)
- * iOS Safari HTML5 Audio Unlocked
+ * speech.js - Web Native Speech Recognition (STT) & Native System Speech Synthesis (TTS)
+ * 100% Offline, Rock-Solid Local System TTS for Mobile (iOS Safari & Android)
  */
 
 export class SpeechManager {
@@ -9,14 +8,16 @@ export class SpeechManager {
     this.synth = window.speechSynthesis;
     this.recognition = null;
     this.isListening = false;
+    this.voices = [];
+    this.selectedVoice = null;
     this.rate = 1.0; // Speech speed rate
+    this.pitch = 1.0;
     this.autoPlay = true;
     this.recLang = 'zh-TW'; // Default to zh-TW for seamless mixed Chinese + English recognition
-    this.ttsEngine = 'google-hd-us'; // Default to Google Cloud HD Audio for natural human voice
-    this.audioPlayer = new Audio(); // Persistent HTML5 Audio instance for iOS Safari
     this.wakeLock = null;
 
     this.initRecognition();
+    this.initVoices();
     this.initMediaSession();
   }
 
@@ -40,10 +41,6 @@ export class SpeechManager {
     if (this.recognition) {
       this.recognition.lang = this.recLang;
     }
-  }
-
-  setTTSEngine(engine) {
-    this.ttsEngine = engine || 'google-hd-us';
   }
 
   startListening(onResult, onEnd, onError, onVolumeChange) {
@@ -107,6 +104,58 @@ export class SpeechManager {
     }
   }
 
+  // --- Speech Synthesis (TTS) ---
+  initVoices() {
+    if (!this.synth) return;
+
+    const loadVoices = () => {
+      this.voices = this.synth.getVoices();
+      const englishVoices = this.getEnglishVoices();
+      if (englishVoices.length > 0 && !this.selectedVoice) {
+        // Preferred iOS & Android American English voice matching
+        this.selectedVoice = englishVoices.find(v => 
+          v.name.includes('Samantha') || 
+          v.name.includes('Ava') || 
+          v.name.includes('Karen') || 
+          v.name.includes('Daniel') || 
+          v.name.includes('Alex') ||
+          v.name.includes('Enhanced') ||
+          v.name.includes('Natural') ||
+          v.name.includes('Google')
+        ) || englishVoices[0];
+      }
+    };
+
+    loadVoices();
+    if (this.synth.onvoiceschanged !== undefined) {
+      this.synth.onvoiceschanged = loadVoices;
+    }
+  }
+
+  getEnglishVoices() {
+    if (!this.synth) return [];
+    this.voices = this.synth.getVoices();
+    return (this.voices || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+  }
+
+  setVoice(voiceName) {
+    if (!voiceName) return;
+    const englishVoices = this.getEnglishVoices();
+    const found = (this.voices || []).find(v => v.name === voiceName);
+
+    if (found) {
+      this.selectedVoice = found;
+    } else if (englishVoices.length > 0) {
+      this.selectedVoice = englishVoices.find(v => 
+        v.name.includes('Samantha') || 
+        v.name.includes('Ava') || 
+        v.name.includes('Karen') || 
+        v.name.includes('Daniel') || 
+        v.name.includes('Alex')
+      ) || englishVoices[0];
+    }
+  }
+
   // --- CarPlay & Lock Screen Media Session API ---
   initMediaSession() {
     if ('mediaSession' in navigator) {
@@ -155,15 +204,19 @@ export class SpeechManager {
 
   /**
    * iOS Safari User-Gesture Unlock Helper
-   * Synchronously unlocks HTML5 Audio context on iOS!
+   * Synchronously unlocks Web Speech Synthesis context on iOS touch!
    */
   unlock() {
-    if (this.audioPlayer) {
+    if (this.synth) {
       try {
-        // Unlock HTML5 Audio context for iOS Safari
-        this.audioPlayer.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-        this.audioPlayer.play().catch(() => {});
-      } catch (e) {}
+        this.synth.resume();
+        const silentUtterance = new SpeechSynthesisUtterance(' ');
+        silentUtterance.volume = 0.01;
+        silentUtterance.rate = 10.0;
+        this.synth.speak(silentUtterance);
+      } catch (e) {
+        console.warn('TTS Unlock warning:', e);
+      }
     }
   }
 
@@ -174,16 +227,11 @@ export class SpeechManager {
   speak(text, onStart, onEnd) {
     this.stopSpeaking();
 
-    let lang = 'en';
-    if (this.ttsEngine === 'google-hd-uk') lang = 'en-gb';
-    if (this.ttsEngine === 'google-hd-au') lang = 'en-au';
-    
-    // Always use Cloud HD Neural Human Audio
-    this.playCloudTTS(text, lang, onStart, onEnd);
-  }
+    if (!this.synth) {
+      if (onEnd) onEnd();
+      return;
+    }
 
-  // --- Cloud HD Audio Stream Player ---
-  playCloudTTS(text, lang = 'en', onStart, onEnd) {
     const cleanText = text
       .replace(/```[\s\S]*?```/g, '') // remove code blocks
       .replace(/[\#\*\_\~\`]/g, '') // remove markdown symbols
@@ -196,92 +244,62 @@ export class SpeechManager {
       return;
     }
 
-    const chunks = this._splitTextIntoChunks(cleanText, 170);
-    this._playChunksSequentially(chunks, lang, onStart, onEnd);
-  }
-
-  _splitTextIntoChunks(text, maxLength = 170) {
-    const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
-    const chunks = [];
-    let current = '';
-
-    for (const sentence of sentences) {
-      if ((current + sentence).length <= maxLength) {
-        current += sentence;
-      } else {
-        if (current) chunks.push(current.trim());
-        if (sentence.length <= maxLength) {
-          current = sentence;
-        } else {
-          const words = sentence.split(' ');
-          let wordChunk = '';
-          for (const w of words) {
-            if ((wordChunk + ' ' + w).length <= maxLength) {
-              wordChunk += (wordChunk ? ' ' : '') + w;
-            } else {
-              if (wordChunk) chunks.push(wordChunk.trim());
-              wordChunk = w;
-            }
-          }
-          current = wordChunk;
-        }
+    try {
+      this.synth.cancel();
+      if (this.synth.paused) {
+        this.synth.resume();
       }
-    }
-    if (current) chunks.push(current.trim());
-    return chunks;
-  }
+    } catch (e) {}
 
-  _playChunksSequentially(chunks, lang, onStart, onEnd) {
-    if (chunks.length === 0) {
-      if (onEnd) onEnd();
-      return;
+    const englishVoices = this.getEnglishVoices();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = this.rate;
+    utterance.pitch = this.pitch;
+    utterance.lang = 'en-US'; // Pure American English
+
+    if (this.selectedVoice) {
+      utterance.voice = this.selectedVoice;
+    } else if (englishVoices.length > 0) {
+      utterance.voice = englishVoices[0];
     }
 
-    let index = 0;
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'playing';
-    }
-    if (onStart) onStart();
-
-    const playNext = () => {
-      if (index >= chunks.length) {
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.playbackState = 'paused';
-        }
-        if (onEnd) onEnd();
-        return;
+    utterance.onstart = () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
       }
-
-      const chunkText = chunks[index];
-      index++;
-
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunkText)}&tl=${lang}&client=tw-ob`;
-      
-      this.audioPlayer.src = url;
-      this.audioPlayer.playbackRate = this.rate || 1.0;
-
-      this.audioPlayer.onended = () => {
-        playNext();
-      };
-
-      this.audioPlayer.onerror = (err) => {
-        console.warn('Cloud Audio chunk play warning:', err);
-        playNext();
-      };
-
-      this.audioPlayer.play().catch(err => {
-        console.warn('Cloud Audio play catch:', err);
-        playNext();
-      });
+      if (onStart) onStart();
     };
 
-    playNext();
+    utterance.onend = () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+      if (onEnd) onEnd();
+    };
+
+    utterance.onerror = (err) => {
+      console.error('Native System TTS error:', err);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+      if (onEnd) onEnd();
+    };
+
+    try {
+      this.synth.speak(utterance);
+      if (this.synth.paused) {
+        this.synth.resume();
+      }
+    } catch (e) {
+      console.error('Failed to trigger native speech:', e);
+      if (onEnd) onEnd();
+    }
   }
 
   stopSpeaking() {
-    if (this.audioPlayer) {
+    if (this.synth) {
       try {
-        this.audioPlayer.pause();
+        this.synth.cancel();
       } catch (e) {}
     }
     if ('mediaSession' in navigator) {

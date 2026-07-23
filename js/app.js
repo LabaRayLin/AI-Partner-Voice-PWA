@@ -67,7 +67,7 @@ class App {
       // Settings Inputs
       apiKeyInput: document.getElementById('setting-api-key'),
       modelSelect: document.getElementById('setting-model'),
-      ttsEngineSelect: document.getElementById('setting-tts-engine'),
+      voiceSelect: document.getElementById('setting-voice'),
       recLangSelect: document.getElementById('setting-rec-lang'),
       handsFreeCheck: document.getElementById('setting-handsfree'),
       speechRateInput: document.getElementById('setting-speech-rate'),
@@ -115,22 +115,21 @@ class App {
     let model = await db.getSetting('model', 'gemini-2.5-flash');
     if (model) model = model.replace(/^models\//, '');
 
-    const ttsEngine = await db.getSetting('ttsEngine', 'google-hd-us');
     const recLang = await db.getSetting('recLang', 'zh-TW');
     const handsFree = await db.getSetting('handsFree', false);
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
+    const voiceName = await db.getSetting('voiceName', '');
 
     this.llm.updateConfig({ apiKey, model });
-    speech.setTTSEngine(ttsEngine);
     speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
+    if (voiceName) speech.setVoice(voiceName);
 
     // Populate Settings UI
     this.el.apiKeyInput.value = apiKey;
     this.el.modelSelect.value = model || 'gemini-2.5-flash';
-    if (this.el.ttsEngineSelect) this.el.ttsEngineSelect.value = ttsEngine || 'google-hd-us';
     if (this.el.recLangSelect) this.el.recLangSelect.value = recLang || 'zh-TW';
     if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = handsFree;
     this.el.speechRateInput.value = speechRate;
@@ -178,25 +177,25 @@ class App {
       this.showToast('提示：Google Gemini API Key 通常以 "AIzaSy" 開頭，請確認是否為 AI Studio Key！', 'info');
     }
 
-    const ttsEngine = this.el.ttsEngineSelect ? this.el.ttsEngineSelect.value : 'google-hd-us';
     const recLang = this.el.recLangSelect ? this.el.recLangSelect.value : 'zh-TW';
     const handsFree = this.el.handsFreeCheck ? this.el.handsFreeCheck.checked : false;
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
+    const voiceName = this.el.voiceSelect ? this.el.voiceSelect.value : '';
 
     await db.saveSetting('apiKey', apiKey);
     await db.saveSetting('model', model);
-    await db.saveSetting('ttsEngine', ttsEngine);
     await db.saveSetting('recLang', recLang);
     await db.saveSetting('handsFree', handsFree);
     await db.saveSetting('speechRate', speechRate);
     await db.saveSetting('autoPlay', autoPlay);
+    await db.saveSetting('voiceName', voiceName);
 
     this.llm.updateConfig({ apiKey, model });
-    speech.setTTSEngine(ttsEngine);
     speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
+    if (voiceName) speech.setVoice(voiceName);
 
     this.toggleHandsFree(handsFree);
 
@@ -436,7 +435,7 @@ class App {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'flex items-center gap-1 hover:text-indigo-400 transition-colors py-0.5 px-1.5 rounded hover:bg-slate-700/40';
       copyBtn.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
         複製
       `;
       copyBtn.onclick = () => {
@@ -661,9 +660,20 @@ class App {
       speech.unlock(); // Unlock TTS audio context when user opens settings
       this.el.apiKeyInput.value = this.llm.apiKey;
       this.el.modelSelect.value = this.llm.model || 'gemini-2.5-flash';
-      if (this.el.ttsEngineSelect) this.el.ttsEngineSelect.value = speech.ttsEngine || 'google-hd-us';
       if (this.el.recLangSelect) this.el.recLangSelect.value = speech.recLang || 'zh-TW';
       if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = this.handsFree;
+
+      if (this.el.voiceSelect) {
+        const voices = speech.getEnglishVoices();
+        this.el.voiceSelect.innerHTML = '<option value="">預設美式英文系統聲音 (en-US)</option>';
+        voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.name;
+          opt.textContent = `${v.name} (${v.lang})`;
+          if (speech.selectedVoice?.name === v.name) opt.selected = true;
+          this.el.voiceSelect.appendChild(opt);
+        });
+      }
 
       this.openModal(this.el.settingsModal);
     };
