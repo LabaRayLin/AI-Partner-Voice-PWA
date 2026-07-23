@@ -257,6 +257,14 @@
         </div>
 
         <div class="pt-2 border-t border-slate-800 space-y-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">麥克風語音辨識模式 (Voice Recognition)</label>
+            <select id="setting-rec-lang" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              <option value="zh-TW">🇹🇼 中英混合辨識 (推薦：可同時說中文與英文術語)</option>
+              <option value="en-US">🇺🇸 純美式英語辨識 (全英文練習情境)</option>
+            </select>
+          </div>
+
           <div class="flex items-center justify-between">
             <label class="font-medium text-slate-300">自動語音朗讀 AI 回覆 (Auto-Play TTS)</label>
             <input type="checkbox" id="setting-autoplay" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700" checked />

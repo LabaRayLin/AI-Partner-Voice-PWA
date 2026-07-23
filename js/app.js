@@ -1,6 +1,6 @@
 /**
  * app.js - Main Application Controller for AI Partner & Agents PWA
- * Dedicated for Native Google Gemini API
+ * Dedicated for Native Google Gemini API with Mobile iOS TTS Optimization
  */
 
 import { db } from './db.js';
@@ -62,6 +62,7 @@ class App {
       // Settings Inputs
       apiKeyInput: document.getElementById('setting-api-key'),
       modelSelect: document.getElementById('setting-model'),
+      recLangSelect: document.getElementById('setting-rec-lang'),
       speechRateInput: document.getElementById('setting-speech-rate'),
       speechRateVal: document.getElementById('setting-speech-rate-val'),
       autoPlayCheck: document.getElementById('setting-autoplay'),
@@ -87,11 +88,13 @@ class App {
     let model = await db.getSetting('model', 'gemini-2.5-flash');
     if (model) model = model.replace(/^models\//, '');
 
+    const recLang = await db.getSetting('recLang', 'zh-TW');
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
     const voiceName = await db.getSetting('voiceName', '');
 
     this.llm.updateConfig({ apiKey, model });
+    speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
     if (voiceName) speech.setVoice(voiceName);
@@ -99,6 +102,7 @@ class App {
     // Populate Settings UI
     this.el.apiKeyInput.value = apiKey;
     this.el.modelSelect.value = model || 'gemini-2.5-flash';
+    if (this.el.recLangSelect) this.el.recLangSelect.value = recLang || 'zh-TW';
     this.el.speechRateInput.value = speechRate;
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
@@ -113,23 +117,26 @@ class App {
       this.showToast('提示：Google Gemini API Key 通常以 "AIzaSy" 開頭，請確認是否為 AI Studio Key！', 'info');
     }
 
+    const recLang = this.el.recLangSelect ? this.el.recLangSelect.value : 'zh-TW';
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
     const voiceName = this.el.voiceSelect.value;
 
     await db.saveSetting('apiKey', apiKey);
     await db.saveSetting('model', model);
+    await db.saveSetting('recLang', recLang);
     await db.saveSetting('speechRate', speechRate);
     await db.saveSetting('autoPlay', autoPlay);
     await db.saveSetting('voiceName', voiceName);
 
     this.llm.updateConfig({ apiKey, model });
+    speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
     speech.setVoice(voiceName);
 
     this.closeModal(this.el.settingsModal);
-    this.showToast('Google Gemini 設定已成功儲存！', 'success');
+    this.showToast('設定已成功儲存！', 'success');
   }
 
   // --- Agents ---
@@ -356,7 +363,10 @@ class App {
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
         朗讀
       `;
-      speakBtn.onclick = () => speech.speak(msg.content);
+      speakBtn.onclick = () => {
+        speech.unlock();
+        speech.speak(msg.content);
+      };
 
       const copyBtn = document.createElement('button');
       copyBtn.className = 'flex items-center gap-1 hover:text-indigo-400 transition-colors py-0.5 px-1.5 rounded hover:bg-slate-700/40';
@@ -399,6 +409,11 @@ class App {
   async sendMessage(userInputText = null) {
     const text = userInputText || this.el.chatInput.value.trim();
     if (!text || this.isGenerating || !this.currentChat) return;
+
+    // Synchronously unlock iOS Safari TTS Audio context during user click / input
+    if (speech.autoPlay) {
+      speech.unlock();
+    }
 
     if (!this.llm.apiKey) {
       this.showToast('請先點擊右上角設定 Google Gemini API Key！', 'error');
@@ -479,13 +494,15 @@ class App {
 
   // --- Voice Input (STT) ---
   toggleVoiceInput() {
+    speech.unlock(); // Unlock TTS context on mic tap
+
     if (speech.isListening) {
       speech.stopListening();
       return;
     }
 
     this.el.micPulse.classList.remove('hidden');
-    this.el.micStatusText.textContent = '聆聽中... 請開口說話';
+    this.el.micStatusText.textContent = '聆聽中... (可同時說中文與英文)';
 
     speech.startListening(
       (transcript, isFinal) => {
@@ -532,12 +549,19 @@ class App {
     this.el.chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        speech.unlock();
         this.sendMessage();
       }
     });
 
-    this.el.sendBtn.addEventListener('click', () => this.sendMessage());
-    this.el.micBtn.addEventListener('click', () => this.toggleVoiceInput());
+    this.el.sendBtn.addEventListener('click', () => {
+      speech.unlock();
+      this.sendMessage();
+    });
+
+    this.el.micBtn.addEventListener('click', () => {
+      this.toggleVoiceInput();
+    });
 
     this.el.newChatBtn.addEventListener('click', () => this.createNewChat());
 
@@ -550,8 +574,10 @@ class App {
     });
 
     const triggerOpenSettings = async () => {
+      speech.unlock(); // Unlock TTS audio context when user opens settings
       this.el.apiKeyInput.value = this.llm.apiKey;
       this.el.modelSelect.value = this.llm.model || 'gemini-2.5-flash';
+      if (this.el.recLangSelect) this.el.recLangSelect.value = speech.recLang || 'zh-TW';
 
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
