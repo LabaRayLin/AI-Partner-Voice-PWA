@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>英語口語 - AI Partner & Agents PWA</title>
   <meta name="description" content="專為英語學習者打造的 AI 口語對話與智能助教 PWA 應用，支援語音朗讀、聽寫、語法糾錯與自訂 AI 導師。" />
-  <meta name="theme-color" content="#4f46e5" />
+  <meta name="theme-color" content="#0f172a" />
   
   <!-- iOS Home Screen Metadata -->
   <meta name="apple-mobile-web-app-title" content="英語口語" />
@@ -47,24 +47,51 @@
   </script>
 
   <style>
-    /* iOS Viewport & Touch Freeze Styles */
-    html, body {
+    /* iOS Safe Area & Viewport Fixes */
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+    html {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    body {
+      height: 100%;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
       touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
       overscroll-behavior: none;
       -webkit-user-select: none;
       user-select: none;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      position: fixed;
-      left: 0;
-      top: 0;
     }
     input, textarea, select {
       -webkit-user-select: text;
       user-select: text;
       font-size: 16px !important; /* Prevents iOS auto-zoom on input focus */
+    }
+
+    .safe-top-header {
+      padding-top: max(0.75rem, var(--sat));
+      padding-bottom: 0.75rem;
+      padding-left: max(0.75rem, var(--sal));
+      padding-right: max(0.75rem, var(--sar));
+    }
+    .safe-bottom-bar {
+      padding-bottom: max(0.75rem, calc(0.5rem + var(--sab)));
+      padding-left: max(0.75rem, var(--sal));
+      padding-right: max(0.75rem, var(--sar));
+    }
+    .safe-sidebar {
+      padding-top: var(--sat);
+      padding-bottom: var(--sab);
     }
 
     /* Custom Scrollbars */
@@ -94,10 +121,10 @@
 <body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-indigo-500 selection:text-white">
 
   <!-- Main Container -->
-  <div class="flex-1 flex overflow-hidden relative">
+  <div class="flex-1 flex overflow-hidden relative h-full">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-80 bg-slate-900/95 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full shadow-2xl">
+    <aside id="sidebar" class="safe-sidebar w-80 bg-slate-900/95 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full shadow-2xl">
       
       <!-- Sidebar Header -->
       <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
@@ -175,20 +202,20 @@
     <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
       
-      <!-- Top Navigation Header -->
-      <header class="h-16 px-3 sm:px-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md flex items-center justify-between z-20 gap-2">
+      <!-- Top Navigation Header with iOS Dynamic Island Safe Area -->
+      <header class="safe-top-header border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md flex items-center justify-between z-20 gap-2 flex-shrink-0">
         <div class="flex items-center gap-2 min-w-0 flex-1">
-          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1 flex-shrink-0" title="開啟選單">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex-shrink-0" title="開啟選單">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
           
           <!-- Current Active Agent Header -->
           <div class="flex items-center gap-2 min-w-0">
-            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=OutdoorCoach" alt="Avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 flex-shrink-0" />
+            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=OutdoorCoach" alt="Avatar" class="w-8 h-8 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 flex-shrink-0" />
             <div class="min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <h2 id="active-agent-name" class="font-bold text-xs sm:text-sm text-white truncate max-w-[120px] sm:max-w-none">戶外品牌商務口說教練</h2>
-                <span id="active-agent-category" class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 flex-shrink-0">戶外機能紡織</span>
+              <div class="flex items-center gap-1 flex-wrap">
+                <h2 id="active-agent-name" class="font-bold text-xs sm:text-sm text-white truncate max-w-[100px] xs:max-w-[130px] sm:max-w-none">戶外品牌商務口說教練</h2>
+                <span id="active-agent-category" class="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 flex-shrink-0">戶外機能紡織</span>
               </div>
               <p id="active-agent-desc" class="hidden md:block text-xs text-slate-400 truncate max-w-xs sm:max-w-md">專為研發總監打造的國際品牌 (Patagonia 等) 戶外機能布料與樣衣口語對話教練。</p>
             </div>
@@ -197,14 +224,14 @@
 
         <!-- Top Right Actions -->
         <div class="flex items-center gap-1.5 flex-shrink-0">
-          <button id="hands-free-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-300 transition-all active:scale-95" title="切換免手持連續對話 (開車CarPlay推薦)">
+          <button id="hands-free-btn" class="flex items-center gap-1 px-2 py-1.5 sm:px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-300 transition-all active:scale-95" title="切換免手持連續對話 (開車CarPlay推薦)">
             <span>🚗</span>
             <span id="hands-free-text" class="hidden sm:inline">免手持對話</span>
           </button>
 
           <button id="open-settings-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/80 text-xs text-white shadow-md transition-all active:scale-95">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <span>⚙️ 設定 Key</span>
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Key 設定</span>
           </button>
         </div>
       </header>
@@ -225,13 +252,13 @@
       </div>
 
       <!-- Microphone Active Floating Indicator -->
-      <div id="mic-pulse" class="hidden absolute top-20 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs px-4 py-2 rounded-full shadow-2xl z-40 flex items-center gap-2 animate-bounce border border-indigo-400/50">
+      <div id="mic-pulse" class="hidden absolute top-24 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs px-4 py-2 rounded-full shadow-2xl z-40 flex items-center gap-2 animate-bounce border border-indigo-400/50">
         <span class="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping"></span>
         <span id="mic-status-text">正在聆聽您的口語... 請說話</span>
       </div>
 
-      <!-- Bottom Chat Input Bar -->
-      <div class="p-3 sm:p-4 border-t border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
+      <!-- Bottom Chat Input Bar with iOS Home Indicator Safe Area -->
+      <div class="safe-bottom-bar border-t border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex-shrink-0">
         <div class="max-w-4xl mx-auto flex items-end gap-2 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-2 focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all shadow-xl">
           
           <!-- Mic / Voice Button -->
@@ -254,7 +281,7 @@
 
   <!-- Settings Modal (Dedicated for Google Gemini) -->
   <div id="settings-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 class="font-bold text-base text-white flex items-center gap-2">
           <span>✨ Google Gemini API 設定</span>
@@ -282,6 +309,16 @@
         </div>
 
         <div class="pt-2 border-t border-slate-800 space-y-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">TTS 朗讀發音引擎 (Speech Engine)</label>
+            <select id="setting-tts-engine" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-semibold text-indigo-300">
+              <option value="google-hd-us">✨ 雲端 Google HD 美式極致人聲 (推薦：宛如真實真人朗讀)</option>
+              <option value="google-hd-uk">🇬🇧 雲端 Google HD 英式優雅人聲</option>
+              <option value="google-hd-au">🇦🇺 雲端 Google HD 澳式英語人聲</option>
+              <option value="system">📱 手機/本機系統內建人聲 (傳統 Web Speech)</option>
+            </select>
+          </div>
+
           <div>
             <label class="block font-medium text-slate-300 mb-1">麥克風語音辨識模式 (Voice Recognition)</label>
             <select id="setting-rec-lang" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
@@ -311,8 +348,8 @@
             <input type="range" id="setting-speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-indigo-500" />
           </div>
 
-          <div>
-            <label class="block font-medium text-slate-300 mb-1">TTS 朗讀聲線 (Voice)</label>
+          <div id="system-voice-container">
+            <label class="block font-medium text-slate-300 mb-1">本機 TTS 朗讀聲線 (Voice)</label>
             <select id="setting-voice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
               <option value="">預設系統聲音</option>
             </select>

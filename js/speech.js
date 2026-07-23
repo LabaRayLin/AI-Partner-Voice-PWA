@@ -1,6 +1,6 @@
 /**
- * speech.js - Web Native Speech Recognition (STT) and Speech Synthesis (TTS)
- * Mobile (iOS Safari & Android) Optimized with Mixed Chinese/English STT & CarPlay MediaSession / WakeLock
+ * speech.js - Web Native Speech Recognition (STT) & Multi-Engine Speech Synthesis (TTS)
+ * Supports Google Cloud HD Neural Human Voices (US/UK/AU) & System Web Speech
  */
 
 export class SpeechManager {
@@ -14,6 +14,8 @@ export class SpeechManager {
     this.pitch = 1.0;
     this.autoPlay = true;
     this.recLang = 'zh-TW'; // Default to zh-TW for seamless mixed Chinese + English recognition
+    this.ttsEngine = 'google-hd-us'; // Default to Google HD Audio for natural human voice
+    this.currentAudio = null;
     this.wakeLock = null;
 
     this.initRecognition();
@@ -41,6 +43,10 @@ export class SpeechManager {
     if (this.recognition) {
       this.recognition.lang = this.recLang;
     }
+  }
+
+  setTTSEngine(engine) {
+    this.ttsEngine = engine || 'google-hd-us';
   }
 
   startListening(onResult, onEnd, onError, onVolumeChange) {
@@ -180,7 +186,6 @@ export class SpeechManager {
 
   /**
    * iOS Safari User-Gesture Unlock Helper
-   * Call this synchronously inside user click/tap handlers so iOS permits background/async TTS play!
    */
   unlock() {
     if (!this.synth) return;
@@ -197,7 +202,7 @@ export class SpeechManager {
 
   getEnglishVoices() {
     if (!this.synth) return [];
-    // Always fetch latest system voices (including newly downloaded Siri/Enhanced voices)
+    // Always fetch latest system voices
     this.voices = this.synth.getVoices();
     return (this.voices || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
   }
@@ -210,7 +215,6 @@ export class SpeechManager {
     if (found) {
       this.selectedVoice = found;
     } else if (englishVoices.length > 0) {
-      // Fallback if saved voice name from another OS/device doesn't exist on this mobile OS
       this.selectedVoice = englishVoices.find(v => 
         v.name.includes('Enhanced') ||
         v.name.includes('Premium') ||
@@ -227,9 +231,123 @@ export class SpeechManager {
   }
 
   speak(text, onStart, onEnd) {
+    this.stopSpeaking();
+
+    // Check if user selected Cloud HD Neural Audio Engine
+    if (this.ttsEngine && this.ttsEngine.startsWith('google-hd')) {
+      let lang = 'en';
+      if (this.ttsEngine === 'google-hd-uk') lang = 'en-gb';
+      if (this.ttsEngine === 'google-hd-au') lang = 'en-au';
+      
+      this.playCloudTTS(text, lang, onStart, onEnd);
+      return;
+    }
+
+    // Fallback to System Web Speech
+    this._speakSystemTTS(text, onStart, onEnd);
+  }
+
+  // --- Cloud HD Audio Stream Player ---
+  playCloudTTS(text, lang = 'en', onStart, onEnd) {
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '') // remove code blocks
+      .replace(/[\#\*\_\~\`]/g, '') // remove markdown symbols
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // link formatting
+      .replace(/\n+/g, ' ')
+      .trim();
+
+    if (!cleanText) {
+      if (onEnd) onEnd();
+      return;
+    }
+
+    const chunks = this._splitTextIntoChunks(cleanText, 170);
+    this._playChunksSequentially(chunks, lang, onStart, onEnd);
+  }
+
+  _splitTextIntoChunks(text, maxLength = 170) {
+    const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
+    const chunks = [];
+    let current = '';
+
+    for (const sentence of sentences) {
+      if ((current + sentence).length <= maxLength) {
+        current += sentence;
+      } else {
+        if (current) chunks.push(current.trim());
+        if (sentence.length <= maxLength) {
+          current = sentence;
+        } else {
+          const words = sentence.split(' ');
+          let wordChunk = '';
+          for (const w of words) {
+            if ((wordChunk + ' ' + w).length <= maxLength) {
+              wordChunk += (wordChunk ? ' ' : '') + w;
+            } else {
+              if (wordChunk) chunks.push(wordChunk.trim());
+              wordChunk = w;
+            }
+          }
+          current = wordChunk;
+        }
+      }
+    }
+    if (current) chunks.push(current.trim());
+    return chunks;
+  }
+
+  _playChunksSequentially(chunks, lang, onStart, onEnd) {
+    if (chunks.length === 0) {
+      if (onEnd) onEnd();
+      return;
+    }
+
+    let index = 0;
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
+    if (onStart) onStart();
+
+    const playNext = () => {
+      if (index >= chunks.length) {
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
+        if (onEnd) onEnd();
+        return;
+      }
+
+      const chunkText = chunks[index];
+      index++;
+
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunkText)}&tl=${lang}&client=tw-ob`;
+      const audio = new Audio();
+      audio.src = url;
+      audio.playbackRate = this.rate || 1.0;
+      this.currentAudio = audio;
+
+      audio.onended = () => {
+        playNext();
+      };
+
+      audio.onerror = (err) => {
+        console.warn('Cloud Audio chunk play warning:', err);
+        playNext();
+      };
+
+      audio.play().catch(err => {
+        console.warn('Cloud Audio play catch:', err);
+        // If HTML5 audio is blocked by iOS, fallback to System TTS
+        this._speakSystemTTS(chunks.slice(index - 1).join(' '), null, onEnd);
+      });
+    };
+
+    playNext();
+  }
+
+  _speakSystemTTS(text, onStart, onEnd) {
     if (!this.synth) return;
 
-    // Fix iOS Safari stuck speech state
     try {
       this.synth.cancel();
       if (this.synth.paused) {
@@ -238,12 +356,10 @@ export class SpeechManager {
     } catch (e) {}
 
     const englishVoices = this.getEnglishVoices();
-
-    // Clean markdown syntax for speech
     const cleanText = text
-      .replace(/```[\s\S]*?```/g, '') // remove code blocks
-      .replace(/[\#\*\_\~\`]/g, '') // remove markdown symbols
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // link formatting
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/[\#\*\_\~\`]/g, '')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
       .replace(/\n+/g, ' ')
       .trim();
 
@@ -285,7 +401,6 @@ export class SpeechManager {
 
     try {
       this.synth.speak(utterance);
-      // Extra iOS Safari workaround: resume synth if iOS accidentally pauses
       if (this.synth.paused) {
         this.synth.resume();
       }
@@ -295,13 +410,19 @@ export class SpeechManager {
   }
 
   stopSpeaking() {
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      } catch (e) {}
+    }
     if (this.synth) {
       try {
         this.synth.cancel();
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.playbackState = 'paused';
-        }
       } catch (e) {}
+    }
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
     }
   }
 }

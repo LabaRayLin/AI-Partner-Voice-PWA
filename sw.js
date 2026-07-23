@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-partner-pwa-v17';
+const CACHE_NAME = 'ai-partner-pwa-v19';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -14,7 +14,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell v17');
+      console.log('[Service Worker] Caching app shell v19');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -38,8 +38,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('generativelanguage.googleapis.com') || event.request.url.includes('api.dicebear.com')) {
-    return; // Direct network request for Gemini API
+  if (event.request.url.includes('generativelanguage.googleapis.com') || event.request.url.includes('api.dicebear.com') || event.request.url.includes('translate.google.com')) {
+    return; // Direct network request for Gemini & Cloud Audio API
   }
 
   event.respondWith(

@@ -67,12 +67,14 @@ class App {
       // Settings Inputs
       apiKeyInput: document.getElementById('setting-api-key'),
       modelSelect: document.getElementById('setting-model'),
+      ttsEngineSelect: document.getElementById('setting-tts-engine'),
       recLangSelect: document.getElementById('setting-rec-lang'),
       handsFreeCheck: document.getElementById('setting-handsfree'),
       speechRateInput: document.getElementById('setting-speech-rate'),
       speechRateVal: document.getElementById('setting-speech-rate-val'),
       autoPlayCheck: document.getElementById('setting-autoplay'),
       voiceSelect: document.getElementById('setting-voice'),
+      systemVoiceContainer: document.getElementById('system-voice-container'),
 
       // PWA Install
       installPwaBtn: document.getElementById('install-pwa-btn')
@@ -115,6 +117,7 @@ class App {
     let model = await db.getSetting('model', 'gemini-2.5-flash');
     if (model) model = model.replace(/^models\//, '');
 
+    const ttsEngine = await db.getSetting('ttsEngine', 'google-hd-us');
     const recLang = await db.getSetting('recLang', 'zh-TW');
     const handsFree = await db.getSetting('handsFree', false);
     const speechRate = await db.getSetting('speechRate', 1.0);
@@ -122,6 +125,7 @@ class App {
     const voiceName = await db.getSetting('voiceName', '');
 
     this.llm.updateConfig({ apiKey, model });
+    speech.setTTSEngine(ttsEngine);
     speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
@@ -130,6 +134,7 @@ class App {
     // Populate Settings UI
     this.el.apiKeyInput.value = apiKey;
     this.el.modelSelect.value = model || 'gemini-2.5-flash';
+    if (this.el.ttsEngineSelect) this.el.ttsEngineSelect.value = ttsEngine || 'google-hd-us';
     if (this.el.recLangSelect) this.el.recLangSelect.value = recLang || 'zh-TW';
     if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = handsFree;
     this.el.speechRateInput.value = speechRate;
@@ -177,6 +182,7 @@ class App {
       this.showToast('提示：Google Gemini API Key 通常以 "AIzaSy" 開頭，請確認是否為 AI Studio Key！', 'info');
     }
 
+    const ttsEngine = this.el.ttsEngineSelect ? this.el.ttsEngineSelect.value : 'google-hd-us';
     const recLang = this.el.recLangSelect ? this.el.recLangSelect.value : 'zh-TW';
     const handsFree = this.el.handsFreeCheck ? this.el.handsFreeCheck.checked : false;
     const speechRate = parseFloat(this.el.speechRateInput.value);
@@ -185,6 +191,7 @@ class App {
 
     await db.saveSetting('apiKey', apiKey);
     await db.saveSetting('model', model);
+    await db.saveSetting('ttsEngine', ttsEngine);
     await db.saveSetting('recLang', recLang);
     await db.saveSetting('handsFree', handsFree);
     await db.saveSetting('speechRate', speechRate);
@@ -192,6 +199,7 @@ class App {
     await db.saveSetting('voiceName', voiceName);
 
     this.llm.updateConfig({ apiKey, model });
+    speech.setTTSEngine(ttsEngine);
     speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
@@ -660,6 +668,7 @@ class App {
       speech.unlock(); // Unlock TTS audio context when user opens settings
       this.el.apiKeyInput.value = this.llm.apiKey;
       this.el.modelSelect.value = this.llm.model || 'gemini-2.5-flash';
+      if (this.el.ttsEngineSelect) this.el.ttsEngineSelect.value = speech.ttsEngine || 'google-hd-us';
       if (this.el.recLangSelect) this.el.recLangSelect.value = speech.recLang || 'zh-TW';
       if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = this.handsFree;
 
