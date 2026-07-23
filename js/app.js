@@ -73,8 +73,6 @@ class App {
       speechRateInput: document.getElementById('setting-speech-rate'),
       speechRateVal: document.getElementById('setting-speech-rate-val'),
       autoPlayCheck: document.getElementById('setting-autoplay'),
-      voiceSelect: document.getElementById('setting-voice'),
-      systemVoiceContainer: document.getElementById('system-voice-container'),
 
       // PWA Install
       installPwaBtn: document.getElementById('install-pwa-btn')
@@ -122,14 +120,12 @@ class App {
     const handsFree = await db.getSetting('handsFree', false);
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
-    const voiceName = await db.getSetting('voiceName', '');
 
     this.llm.updateConfig({ apiKey, model });
     speech.setTTSEngine(ttsEngine);
     speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
-    if (voiceName) speech.setVoice(voiceName);
 
     // Populate Settings UI
     this.el.apiKeyInput.value = apiKey;
@@ -187,7 +183,6 @@ class App {
     const handsFree = this.el.handsFreeCheck ? this.el.handsFreeCheck.checked : false;
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
-    const voiceName = this.el.voiceSelect.value;
 
     await db.saveSetting('apiKey', apiKey);
     await db.saveSetting('model', model);
@@ -196,14 +191,12 @@ class App {
     await db.saveSetting('handsFree', handsFree);
     await db.saveSetting('speechRate', speechRate);
     await db.saveSetting('autoPlay', autoPlay);
-    await db.saveSetting('voiceName', voiceName);
 
     this.llm.updateConfig({ apiKey, model });
     speech.setTTSEngine(ttsEngine);
     speech.setRecLang(recLang);
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
-    speech.setVoice(voiceName);
 
     this.toggleHandsFree(handsFree);
 
@@ -671,16 +664,6 @@ class App {
       if (this.el.ttsEngineSelect) this.el.ttsEngineSelect.value = speech.ttsEngine || 'google-hd-us';
       if (this.el.recLangSelect) this.el.recLangSelect.value = speech.recLang || 'zh-TW';
       if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = this.handsFree;
-
-      const voices = speech.getEnglishVoices();
-      this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
-      voices.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v.name;
-        opt.textContent = `${v.name} (${v.lang})`;
-        if (speech.selectedVoice?.name === v.name) opt.selected = true;
-        this.el.voiceSelect.appendChild(opt);
-      });
 
       this.openModal(this.el.settingsModal);
     };

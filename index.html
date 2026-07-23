@@ -310,13 +310,11 @@
 
         <div class="pt-2 border-t border-slate-800 space-y-3">
           <div>
-            <label class="block font-medium text-slate-300 mb-1">TTS 朗讀發音引擎 (Speech Engine)</label>
-            <select id="setting-tts-engine" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-semibold text-indigo-300">
-              <option value="google-hd-us">✨ 雲端 Google HD 美式極致人聲 (推薦：宛如真實真人朗讀)</option>
-              <option value="google-hd-uk">🇬🇧 雲端 Google HD 英式優雅人聲</option>
-              <option value="google-hd-au">🇦🇺 雲端 Google HD 澳式英語人聲</option>
-              <option value="system">📱 手機/本機系統內建人聲 (傳統 Web Speech)</option>
-            </select>
+            <label class="block font-medium text-slate-300 mb-1">TTS 朗讀發音聲線</label>
+            <div class="w-full bg-slate-800/80 border border-indigo-500/40 rounded-xl px-3 py-2 text-indigo-300 font-semibold flex items-center justify-between">
+              <span>🇺🇸 雲端 Google HD 純正美式真人聲線</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-mono">100% 真人原聲</span>
+            </div>
           </div>
 
           <div>
@@ -346,13 +344,6 @@
               <span id="setting-speech-rate-val" class="font-mono text-indigo-400">1.0x</span>
             </div>
             <input type="range" id="setting-speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-indigo-500" />
-          </div>
-
-          <div id="system-voice-container">
-            <label class="block font-medium text-slate-300 mb-1">本機 TTS 朗讀聲線 (Voice)</label>
-            <select id="setting-voice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
-              <option value="">預設系統聲音</option>
-            </select>
           </div>
         </div>
       </div>

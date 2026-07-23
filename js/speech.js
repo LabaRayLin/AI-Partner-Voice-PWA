@@ -1,6 +1,6 @@
 /**
- * speech.js - Web Native Speech Recognition (STT) & Multi-Engine Speech Synthesis (TTS)
- * Supports Google Cloud HD Neural Human Voices (US/UK/AU) & System Web Speech
+ * speech.js - Web Native Speech Recognition (STT) & Pure Cloud HD Neural Audio Synthesis (TTS)
+ * 100% High-Definition Natural Human Voices (US/UK/AU Accents)
  * iOS Safari HTML5 Audio Unlocked
  */
 
@@ -9,10 +9,7 @@ export class SpeechManager {
     this.synth = window.speechSynthesis;
     this.recognition = null;
     this.isListening = false;
-    this.voices = [];
-    this.selectedVoice = null;
     this.rate = 1.0; // Speech speed rate
-    this.pitch = 1.0;
     this.autoPlay = true;
     this.recLang = 'zh-TW'; // Default to zh-TW for seamless mixed Chinese + English recognition
     this.ttsEngine = 'google-hd-us'; // Default to Google Cloud HD Audio for natural human voice
@@ -20,7 +17,6 @@ export class SpeechManager {
     this.wakeLock = null;
 
     this.initRecognition();
-    this.initVoices();
     this.initMediaSession();
   }
 
@@ -111,34 +107,6 @@ export class SpeechManager {
     }
   }
 
-  // --- Speech Synthesis (TTS) ---
-  initVoices() {
-    if (!this.synth) return;
-
-    const loadVoices = () => {
-      this.voices = this.synth.getVoices();
-      const englishVoices = this.getEnglishVoices();
-      if (englishVoices.length > 0 && !this.selectedVoice) {
-        // Preferred iOS & Android English voice matching
-        this.selectedVoice = englishVoices.find(v => 
-          v.name.includes('Enhanced') ||
-          v.name.includes('Premium') ||
-          v.name.includes('Samantha') || 
-          v.name.includes('Natural') || 
-          v.name.includes('Google') || 
-          v.name.includes('Karen') || 
-          v.name.includes('Daniel') ||
-          v.name.includes('Ava')
-        ) || englishVoices[0];
-      }
-    };
-
-    loadVoices();
-    if (this.synth.onvoiceschanged !== undefined) {
-      this.synth.onvoiceschanged = loadVoices;
-    }
-  }
-
   // --- CarPlay & Lock Screen Media Session API ---
   initMediaSession() {
     if ('mediaSession' in navigator) {
@@ -187,53 +155,15 @@ export class SpeechManager {
 
   /**
    * iOS Safari User-Gesture Unlock Helper
-   * Synchronously unlocks both Web Speech Synthesis and HTML5 Audio context on iOS!
+   * Synchronously unlocks HTML5 Audio context on iOS!
    */
   unlock() {
-    if (this.synth) {
-      try {
-        this.synth.resume();
-        const silentUtterance = new SpeechSynthesisUtterance(' ');
-        silentUtterance.volume = 0.01;
-        silentUtterance.rate = 10.0; // Play instantly
-        this.synth.speak(silentUtterance);
-      } catch (e) {
-        console.warn('TTS Unlock warning:', e);
-      }
-    }
-
     if (this.audioPlayer) {
       try {
         // Unlock HTML5 Audio context for iOS Safari
         this.audioPlayer.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
         this.audioPlayer.play().catch(() => {});
       } catch (e) {}
-    }
-  }
-
-  getEnglishVoices() {
-    if (!this.synth) return [];
-    // Always fetch latest system voices
-    this.voices = this.synth.getVoices();
-    return (this.voices || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-  }
-
-  setVoice(voiceName) {
-    if (!voiceName) return;
-    const englishVoices = this.getEnglishVoices();
-    const found = (this.voices || []).find(v => v.name === voiceName);
-
-    if (found) {
-      this.selectedVoice = found;
-    } else if (englishVoices.length > 0) {
-      this.selectedVoice = englishVoices.find(v => 
-        v.name.includes('Enhanced') ||
-        v.name.includes('Premium') ||
-        v.name.includes('Samantha') || 
-        v.name.includes('Natural') || 
-        v.name.includes('Google') ||
-        v.name.includes('Karen')
-      ) || englishVoices[0];
     }
   }
 
@@ -244,18 +174,12 @@ export class SpeechManager {
   speak(text, onStart, onEnd) {
     this.stopSpeaking();
 
-    // Check if user selected Cloud HD Neural Audio Engine
-    if (this.ttsEngine && this.ttsEngine.startsWith('google-hd')) {
-      let lang = 'en';
-      if (this.ttsEngine === 'google-hd-uk') lang = 'en-gb';
-      if (this.ttsEngine === 'google-hd-au') lang = 'en-au';
-      
-      this.playCloudTTS(text, lang, onStart, onEnd);
-      return;
-    }
-
-    // Fallback to System Web Speech
-    this._speakSystemTTS(text, onStart, onEnd);
+    let lang = 'en';
+    if (this.ttsEngine === 'google-hd-uk') lang = 'en-gb';
+    if (this.ttsEngine === 'google-hd-au') lang = 'en-au';
+    
+    // Always use Cloud HD Neural Human Audio
+    this.playCloudTTS(text, lang, onStart, onEnd);
   }
 
   // --- Cloud HD Audio Stream Player ---
@@ -354,79 +278,10 @@ export class SpeechManager {
     playNext();
   }
 
-  _speakSystemTTS(text, onStart, onEnd) {
-    if (!this.synth) return;
-
-    try {
-      this.synth.cancel();
-      if (this.synth.paused) {
-        this.synth.resume();
-      }
-    } catch (e) {}
-
-    const englishVoices = this.getEnglishVoices();
-    const cleanText = text
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/[\#\*\_\~\`]/g, '')
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-      .replace(/\n+/g, ' ')
-      .trim();
-
-    if (!cleanText) return;
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = this.rate;
-    utterance.pitch = this.pitch;
-
-    if (this.selectedVoice) {
-      utterance.voice = this.selectedVoice;
-    } else if (englishVoices.length > 0) {
-      utterance.voice = englishVoices[0];
-    } else {
-      utterance.lang = 'en-US';
-    }
-
-    utterance.onstart = () => {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'playing';
-      }
-      if (onStart) onStart();
-    };
-
-    utterance.onend = () => {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'paused';
-      }
-      if (onEnd) onEnd();
-    };
-
-    utterance.onerror = (err) => {
-      console.error('Speech synthesis error:', err);
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'paused';
-      }
-      if (onEnd) onEnd();
-    };
-
-    try {
-      this.synth.speak(utterance);
-      if (this.synth.paused) {
-        this.synth.resume();
-      }
-    } catch (e) {
-      console.error('Failed to trigger speech:', e);
-    }
-  }
-
   stopSpeaking() {
     if (this.audioPlayer) {
       try {
         this.audioPlayer.pause();
-      } catch (e) {}
-    }
-    if (this.synth) {
-      try {
-        this.synth.cancel();
       } catch (e) {}
     }
     if ('mediaSession' in navigator) {
