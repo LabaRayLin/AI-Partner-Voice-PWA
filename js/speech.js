@@ -1,6 +1,6 @@
 /**
- * speech.js - Web Native Speech Recognition (STT) & Native System Speech Synthesis (TTS)
- * 100% Offline, Rock-Solid Local System TTS for Mobile (iOS Safari & Android)
+ * speech.js - Web Native Speech Recognition (STT) and Speech Synthesis (TTS)
+ * Mobile (iOS Safari & Android) Optimized with Mixed Chinese/English STT & CarPlay MediaSession / WakeLock
  */
 
 export class SpeechManager {
@@ -112,16 +112,16 @@ export class SpeechManager {
       this.voices = this.synth.getVoices();
       const englishVoices = this.getEnglishVoices();
       if (englishVoices.length > 0 && !this.selectedVoice) {
-        // Preferred iOS & Android American English voice matching
+        // Preferred iOS & Android English voice matching
         this.selectedVoice = englishVoices.find(v => 
-          v.name.includes('Samantha') || 
-          v.name.includes('Ava') || 
-          v.name.includes('Karen') || 
-          v.name.includes('Daniel') || 
-          v.name.includes('Alex') ||
           v.name.includes('Enhanced') ||
-          v.name.includes('Natural') ||
-          v.name.includes('Google')
+          v.name.includes('Premium') ||
+          v.name.includes('Samantha') || 
+          v.name.includes('Natural') || 
+          v.name.includes('Google') || 
+          v.name.includes('Karen') || 
+          v.name.includes('Daniel') ||
+          v.name.includes('Ava')
         ) || englishVoices[0];
       }
     };
@@ -129,30 +129,6 @@ export class SpeechManager {
     loadVoices();
     if (this.synth.onvoiceschanged !== undefined) {
       this.synth.onvoiceschanged = loadVoices;
-    }
-  }
-
-  getEnglishVoices() {
-    if (!this.synth) return [];
-    this.voices = this.synth.getVoices();
-    return (this.voices || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-  }
-
-  setVoice(voiceName) {
-    if (!voiceName) return;
-    const englishVoices = this.getEnglishVoices();
-    const found = (this.voices || []).find(v => v.name === voiceName);
-
-    if (found) {
-      this.selectedVoice = found;
-    } else if (englishVoices.length > 0) {
-      this.selectedVoice = englishVoices.find(v => 
-        v.name.includes('Samantha') || 
-        v.name.includes('Ava') || 
-        v.name.includes('Karen') || 
-        v.name.includes('Daniel') || 
-        v.name.includes('Alex')
-      ) || englishVoices[0];
     }
   }
 
@@ -204,19 +180,45 @@ export class SpeechManager {
 
   /**
    * iOS Safari User-Gesture Unlock Helper
-   * Synchronously unlocks Web Speech Synthesis context on iOS touch!
+   * Call this synchronously inside user click/tap handlers so iOS permits background/async TTS play!
    */
   unlock() {
-    if (this.synth) {
-      try {
-        this.synth.resume();
-        const silentUtterance = new SpeechSynthesisUtterance(' ');
-        silentUtterance.volume = 0.01;
-        silentUtterance.rate = 10.0;
-        this.synth.speak(silentUtterance);
-      } catch (e) {
-        console.warn('TTS Unlock warning:', e);
-      }
+    if (!this.synth) return;
+    try {
+      this.synth.resume();
+      const silentUtterance = new SpeechSynthesisUtterance(' ');
+      silentUtterance.volume = 0.01;
+      silentUtterance.rate = 10.0; // Play instantly
+      this.synth.speak(silentUtterance);
+    } catch (e) {
+      console.warn('TTS Unlock warning:', e);
+    }
+  }
+
+  getEnglishVoices() {
+    if (!this.synth) return [];
+    // Always fetch latest system voices (including newly downloaded Siri/Enhanced voices)
+    this.voices = this.synth.getVoices();
+    return (this.voices || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+  }
+
+  setVoice(voiceName) {
+    if (!voiceName) return;
+    const englishVoices = this.getEnglishVoices();
+    const found = (this.voices || []).find(v => v.name === voiceName);
+
+    if (found) {
+      this.selectedVoice = found;
+    } else if (englishVoices.length > 0) {
+      // Fallback if saved voice name from another OS/device doesn't exist on this mobile OS
+      this.selectedVoice = englishVoices.find(v => 
+        v.name.includes('Enhanced') ||
+        v.name.includes('Premium') ||
+        v.name.includes('Samantha') || 
+        v.name.includes('Natural') || 
+        v.name.includes('Google') ||
+        v.name.includes('Karen')
+      ) || englishVoices[0];
     }
   }
 
@@ -225,25 +227,9 @@ export class SpeechManager {
   }
 
   speak(text, onStart, onEnd) {
-    this.stopSpeaking();
+    if (!this.synth) return;
 
-    if (!this.synth) {
-      if (onEnd) onEnd();
-      return;
-    }
-
-    const cleanText = text
-      .replace(/```[\s\S]*?```/g, '') // remove code blocks
-      .replace(/[\#\*\_\~\`]/g, '') // remove markdown symbols
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // link formatting
-      .replace(/\n+/g, ' ')
-      .trim();
-
-    if (!cleanText) {
-      if (onEnd) onEnd();
-      return;
-    }
-
+    // Fix iOS Safari stuck speech state
     try {
       this.synth.cancel();
       if (this.synth.paused) {
@@ -252,15 +238,27 @@ export class SpeechManager {
     } catch (e) {}
 
     const englishVoices = this.getEnglishVoices();
+
+    // Clean markdown syntax for speech
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '') // remove code blocks
+      .replace(/[\#\*\_\~\`]/g, '') // remove markdown symbols
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // link formatting
+      .replace(/\n+/g, ' ')
+      .trim();
+
+    if (!cleanText) return;
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = this.rate;
     utterance.pitch = this.pitch;
-    utterance.lang = 'en-US'; // Pure American English
 
     if (this.selectedVoice) {
       utterance.voice = this.selectedVoice;
     } else if (englishVoices.length > 0) {
       utterance.voice = englishVoices[0];
+    } else {
+      utterance.lang = 'en-US';
     }
 
     utterance.onstart = () => {
@@ -278,7 +276,7 @@ export class SpeechManager {
     };
 
     utterance.onerror = (err) => {
-      console.error('Native System TTS error:', err);
+      console.error('Speech synthesis error:', err);
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'paused';
       }
@@ -287,12 +285,12 @@ export class SpeechManager {
 
     try {
       this.synth.speak(utterance);
+      // Extra iOS Safari workaround: resume synth if iOS accidentally pauses
       if (this.synth.paused) {
         this.synth.resume();
       }
     } catch (e) {
-      console.error('Failed to trigger native speech:', e);
-      if (onEnd) onEnd();
+      console.error('Failed to trigger speech:', e);
     }
   }
 
@@ -300,10 +298,10 @@ export class SpeechManager {
     if (this.synth) {
       try {
         this.synth.cancel();
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       } catch (e) {}
-    }
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'paused';
     }
   }
 }

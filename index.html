@@ -47,51 +47,34 @@
   </script>
 
   <style>
-    /* iOS Safe Area & Viewport Fixes */
-    :root {
-      --sat: env(safe-area-inset-top, 0px);
-      --sab: env(safe-area-inset-bottom, 0px);
-      --sal: env(safe-area-inset-left, 0px);
-      --sar: env(safe-area-inset-right, 0px);
-    }
-    html {
-      height: 100%;
-      height: 100dvh;
-      overflow: hidden;
-    }
-    body {
-      height: 100%;
-      height: 100dvh;
-      width: 100vw;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
+    /* iOS Safe Area & Viewport Optimization */
+    html, body {
       touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
       overscroll-behavior: none;
       -webkit-user-select: none;
       user-select: none;
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #020617; /* slate-950 */
     }
+
     input, textarea, select {
       -webkit-user-select: text;
       user-select: text;
       font-size: 16px !important; /* Prevents iOS auto-zoom on input focus */
     }
 
-    .safe-top-header {
-      padding-top: max(0.75rem, var(--sat));
-      padding-bottom: 0.75rem;
-      padding-left: max(0.75rem, var(--sal));
-      padding-right: max(0.75rem, var(--sar));
+    /* iOS Safe Area Padding Utilities */
+    .ios-pt-safe {
+      padding-top: max(12px, env(safe-area-inset-top));
     }
-    .safe-bottom-bar {
-      padding-bottom: max(0.75rem, calc(0.5rem + var(--sab)));
-      padding-left: max(0.75rem, var(--sal));
-      padding-right: max(0.75rem, var(--sar));
-    }
-    .safe-sidebar {
-      padding-top: var(--sat);
-      padding-bottom: var(--sab);
+    .ios-pb-safe {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
     }
 
     /* Custom Scrollbars */
@@ -118,13 +101,13 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen flex flex-col overflow-hidden selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased h-full w-full flex flex-col overflow-hidden selection:bg-indigo-500 selection:text-white">
 
   <!-- Main Container -->
-  <div class="flex-1 flex overflow-hidden relative h-full">
+  <div class="flex-1 flex overflow-hidden relative h-full w-full">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="safe-sidebar w-80 bg-slate-900/95 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full shadow-2xl">
+    <aside id="sidebar" class="w-80 bg-slate-900/95 border-r border-slate-800/80 flex flex-col z-30 transition-all duration-300 backdrop-blur-xl absolute lg:relative h-full shadow-2xl ios-pt-safe ios-pb-safe">
       
       <!-- Sidebar Header -->
       <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
@@ -202,20 +185,20 @@
     <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
       
-      <!-- Top Navigation Header with iOS Dynamic Island Safe Area -->
-      <header class="safe-top-header border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md flex items-center justify-between z-20 gap-2 flex-shrink-0">
-        <div class="flex items-center gap-2 min-w-0 flex-1">
-          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex-shrink-0" title="開啟選單">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <!-- Top Navigation Header with iOS Safe Area Top Padding -->
+      <header class="ios-pt-safe pb-2 px-3 sm:px-4 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md flex items-center justify-between z-20 gap-2 flex-shrink-0">
+        <div class="flex items-center gap-2 min-w-0 flex-1 py-1">
+          <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-1.5 flex-shrink-0 rounded-lg hover:bg-slate-800" title="開啟選單">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
           
           <!-- Current Active Agent Header -->
           <div class="flex items-center gap-2 min-w-0">
-            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=OutdoorCoach" alt="Avatar" class="w-8 h-8 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 flex-shrink-0" />
+            <img id="active-agent-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=OutdoorCoach" alt="Avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 p-0.5 border border-slate-700/80 flex-shrink-0" />
             <div class="min-w-0">
-              <div class="flex items-center gap-1 flex-wrap">
-                <h2 id="active-agent-name" class="font-bold text-xs sm:text-sm text-white truncate max-w-[100px] xs:max-w-[130px] sm:max-w-none">戶外品牌商務口說教練</h2>
-                <span id="active-agent-category" class="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 flex-shrink-0">戶外機能紡織</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h2 id="active-agent-name" class="font-bold text-xs sm:text-sm text-white truncate max-w-[110px] sm:max-w-none">戶外品牌商務口說教練</h2>
+                <span id="active-agent-category" class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 flex-shrink-0">戶外機能紡織</span>
               </div>
               <p id="active-agent-desc" class="hidden md:block text-xs text-slate-400 truncate max-w-xs sm:max-w-md">專為研發總監打造的國際品牌 (Patagonia 等) 戶外機能布料與樣衣口語對話教練。</p>
             </div>
@@ -223,15 +206,15 @@
         </div>
 
         <!-- Top Right Actions -->
-        <div class="flex items-center gap-1.5 flex-shrink-0">
-          <button id="hands-free-btn" class="flex items-center gap-1 px-2 py-1.5 sm:px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-300 transition-all active:scale-95" title="切換免手持連續對話 (開車CarPlay推薦)">
+        <div class="flex items-center gap-1.5 flex-shrink-0 py-1">
+          <button id="hands-free-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-300 transition-all active:scale-95" title="切換免手持連續對話 (開車CarPlay推薦)">
             <span>🚗</span>
             <span id="hands-free-text" class="hidden sm:inline">免手持對話</span>
           </button>
 
           <button id="open-settings-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/80 text-xs text-white shadow-md transition-all active:scale-95">
-            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <span>Key 設定</span>
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>⚙️ 設定 Key</span>
           </button>
         </div>
       </header>
@@ -257,8 +240,8 @@
         <span id="mic-status-text">正在聆聽您的口語... 請說話</span>
       </div>
 
-      <!-- Bottom Chat Input Bar with iOS Home Indicator Safe Area -->
-      <div class="safe-bottom-bar border-t border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex-shrink-0">
+      <!-- Bottom Chat Input Bar with iOS Safe Area Bottom Padding -->
+      <div class="pt-3 px-3 sm:px-4 ios-pb-safe border-t border-slate-800/80 bg-slate-900/80 backdrop-blur-md flex-shrink-0">
         <div class="max-w-4xl mx-auto flex items-end gap-2 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-2 focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all shadow-xl">
           
           <!-- Mic / Voice Button -->
@@ -274,7 +257,7 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-7-9-7-9 7 9 7zm0 0v-8"/></svg>
           </button>
         </div>
-        <p class="text-[11px] text-slate-500 text-center mt-2">提示：AI 可能產生不精準資訊，請結合發音與字典學習。</p>
+        <p class="text-[10px] sm:text-[11px] text-slate-500 text-center mt-1.5 pb-1">提示：AI 可能產生不精準資訊，請結合發音與字典學習。</p>
       </div>
     </main>
   </div>
@@ -310,13 +293,6 @@
 
         <div class="pt-2 border-t border-slate-800 space-y-3">
           <div>
-            <label class="block font-medium text-slate-300 mb-1">系統 TTS 朗讀聲線選擇 (Voice)</label>
-            <select id="setting-voice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
-              <option value="">預設美式英文系統聲音 (en-US)</option>
-            </select>
-          </div>
-
-          <div>
             <label class="block font-medium text-slate-300 mb-1">麥克風語音辨識模式 (Voice Recognition)</label>
             <select id="setting-rec-lang" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
               <option value="zh-TW">🇹🇼 中英混合辨識 (推薦：可同時說中文與英文術語)</option>
@@ -344,6 +320,13 @@
             </div>
             <input type="range" id="setting-speech-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-indigo-500" />
           </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">TTS 朗讀聲線 (Voice)</label>
+            <select id="setting-voice" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              <option value="">預設系統聲音</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -357,7 +340,7 @@
 
   <!-- Create Agent Modal -->
   <div id="agent-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 class="font-bold text-base text-white">✨ 新增自訂 AI 助教</h3>
         <button id="close-agent-btn" class="text-slate-400 hover:text-white p-1">
