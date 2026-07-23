@@ -1,6 +1,6 @@
 /**
  * speech.js - Web Native Speech Recognition (STT) and Speech Synthesis (TTS)
- * Mobile (iOS Safari & Android) Optimized with Mixed Chinese/English STT
+ * Mobile (iOS Safari & Android) Optimized with Mixed Chinese/English STT & CarPlay MediaSession / WakeLock
  */
 
 export class SpeechManager {
@@ -14,9 +14,11 @@ export class SpeechManager {
     this.pitch = 1.0;
     this.autoPlay = true;
     this.recLang = 'zh-TW'; // Default to zh-TW for seamless mixed Chinese + English recognition
+    this.wakeLock = null;
 
     this.initRecognition();
     this.initVoices();
+    this.initMediaSession();
   }
 
   // --- Speech Recognition (STT) ---
@@ -112,6 +114,8 @@ export class SpeechManager {
       if (englishVoices.length > 0 && !this.selectedVoice) {
         // Preferred iOS & Android English voice matching
         this.selectedVoice = englishVoices.find(v => 
+          v.name.includes('Enhanced') ||
+          v.name.includes('Premium') ||
           v.name.includes('Samantha') || 
           v.name.includes('Natural') || 
           v.name.includes('Google') || 
@@ -125,6 +129,52 @@ export class SpeechManager {
     loadVoices();
     if (this.synth.onvoiceschanged !== undefined) {
       this.synth.onvoiceschanged = loadVoices;
+    }
+  }
+
+  // --- CarPlay & Lock Screen Media Session API ---
+  initMediaSession() {
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: '戶外品牌商務口說教練',
+          artist: 'AI Partner Voice',
+          album: '英語口語 PWA',
+          artwork: [
+            { src: 'assets/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+          ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => {
+          this.unlock();
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          this.stopSpeaking();
+        });
+      } catch (e) {
+        console.warn('MediaSession init warning:', e);
+      }
+    }
+  }
+
+  // --- Screen Wake Lock for Driving Mode ---
+  async requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        this.wakeLock = await navigator.wakeLock.request('screen');
+        console.log('Screen Wake Lock active');
+      } catch (e) {
+        console.warn('Wake Lock request failed:', e);
+      }
+    }
+  }
+
+  releaseWakeLock() {
+    if (this.wakeLock) {
+      try {
+        this.wakeLock.release();
+        this.wakeLock = null;
+      } catch (e) {}
     }
   }
 
@@ -147,10 +197,8 @@ export class SpeechManager {
 
   getEnglishVoices() {
     if (!this.synth) return [];
-    if (!this.voices || this.voices.length === 0) {
-      this.voices = this.synth.getVoices();
-    }
-    // Filter voices starting with 'en' (en-US, en-GB, en-AU, etc.)
+    // Always fetch latest system voices (including newly downloaded Siri/Enhanced voices)
+    this.voices = this.synth.getVoices();
     return (this.voices || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
   }
 
@@ -164,6 +212,8 @@ export class SpeechManager {
     } else if (englishVoices.length > 0) {
       // Fallback if saved voice name from another OS/device doesn't exist on this mobile OS
       this.selectedVoice = englishVoices.find(v => 
+        v.name.includes('Enhanced') ||
+        v.name.includes('Premium') ||
         v.name.includes('Samantha') || 
         v.name.includes('Natural') || 
         v.name.includes('Google') ||
@@ -212,15 +262,24 @@ export class SpeechManager {
     }
 
     utterance.onstart = () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
       if (onStart) onStart();
     };
 
     utterance.onend = () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
       if (onEnd) onEnd();
     };
 
     utterance.onerror = (err) => {
       console.error('Speech synthesis error:', err);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
       if (onEnd) onEnd();
     };
 
@@ -239,6 +298,9 @@ export class SpeechManager {
     if (this.synth) {
       try {
         this.synth.cancel();
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       } catch (e) {}
     }
   }

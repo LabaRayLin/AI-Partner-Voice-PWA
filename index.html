@@ -2,7 +2,7 @@
 <html lang="zh-TW" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>英語口語 - AI Partner & Agents PWA</title>
   <meta name="description" content="專為英語學習者打造的 AI 口語對話與智能助教 PWA 應用，支援語音朗讀、聽寫、語法糾錯與自訂 AI 導師。" />
   <meta name="theme-color" content="#4f46e5" />
@@ -47,6 +47,26 @@
   </script>
 
   <style>
+    /* iOS Viewport & Touch Freeze Styles */
+    html, body {
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      position: fixed;
+      left: 0;
+      top: 0;
+    }
+    input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+      font-size: 16px !important; /* Prevents iOS auto-zoom on input focus */
+    }
+
     /* Custom Scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
@@ -177,6 +197,11 @@
 
         <!-- Top Right Actions -->
         <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button id="hands-free-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-300 transition-all active:scale-95" title="切換免手持連續對話 (開車CarPlay推薦)">
+            <span>🚗</span>
+            <span id="hands-free-text" class="hidden sm:inline">免手持對話</span>
+          </button>
+
           <button id="open-settings-btn" class="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/80 text-xs text-white shadow-md transition-all active:scale-95">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             <span>⚙️ 設定 Key</span>
@@ -263,6 +288,14 @@
               <option value="zh-TW">🇹🇼 中英混合辨識 (推薦：可同時說中文與英文術語)</option>
               <option value="en-US">🇺🇸 純美式英語辨識 (全英文練習情境)</option>
             </select>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="font-medium text-slate-300 block">🚗 駕駛免手持連續對話模式</label>
+              <span class="text-[10px] text-slate-400">朗讀完自動聽寫，螢幕常亮，開車 CarPlay 推薦</span>
+            </div>
+            <input type="checkbox" id="setting-handsfree" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700" />
           </div>
 
           <div class="flex items-center justify-between">

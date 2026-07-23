@@ -1,6 +1,6 @@
 /**
  * app.js - Main Application Controller for AI Partner & Agents PWA
- * Dedicated for Native Google Gemini API with Mobile iOS TTS Optimization
+ * Dedicated for Native Google Gemini API with Mobile iOS TTS Optimization & Hands-Free CarPlay Mode
  */
 
 import { db } from './db.js';
@@ -16,6 +16,7 @@ class App {
     this.currentChat = null;
     this.messages = [];
     this.isGenerating = false;
+    this.handsFree = false;
     this.deferredInstallPrompt = null;
 
     this.llm = new LLMClient();
@@ -40,6 +41,10 @@ class App {
       messagesContainer: document.getElementById('messages-container'),
       messagesEmptyState: document.getElementById('messages-empty-state'),
       emptyStateSettingsBtn: document.getElementById('empty-state-settings-btn'),
+
+      // Hands Free Button
+      handsFreeBtn: document.getElementById('hands-free-btn'),
+      handsFreeText: document.getElementById('hands-free-text'),
       
       // Inputs
       chatInput: document.getElementById('chat-input'),
@@ -63,6 +68,7 @@ class App {
       apiKeyInput: document.getElementById('setting-api-key'),
       modelSelect: document.getElementById('setting-model'),
       recLangSelect: document.getElementById('setting-rec-lang'),
+      handsFreeCheck: document.getElementById('setting-handsfree'),
       speechRateInput: document.getElementById('setting-speech-rate'),
       speechRateVal: document.getElementById('setting-speech-rate-val'),
       autoPlayCheck: document.getElementById('setting-autoplay'),
@@ -79,7 +85,28 @@ class App {
     await this.initAgents();
     await this.loadChats();
     this.bindEvents();
+    this.preventiOSZoom();
     this.initPWA();
+  }
+
+  // --- iOS Anti-Zoom & Viewport Freeze ---
+  preventiOSZoom() {
+    // Block pinch-to-zoom gestures on iOS Safari
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+    // Prevent double-tap zoom on iOS Safari
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        if (e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+          e.preventDefault();
+        }
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
   }
 
   // --- Settings ---
@@ -89,6 +116,7 @@ class App {
     if (model) model = model.replace(/^models\//, '');
 
     const recLang = await db.getSetting('recLang', 'zh-TW');
+    const handsFree = await db.getSetting('handsFree', false);
     const speechRate = await db.getSetting('speechRate', 1.0);
     const autoPlay = await db.getSetting('autoPlay', true);
     const voiceName = await db.getSetting('voiceName', '');
@@ -103,9 +131,41 @@ class App {
     this.el.apiKeyInput.value = apiKey;
     this.el.modelSelect.value = model || 'gemini-2.5-flash';
     if (this.el.recLangSelect) this.el.recLangSelect.value = recLang || 'zh-TW';
+    if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = handsFree;
     this.el.speechRateInput.value = speechRate;
     this.el.speechRateVal.textContent = `${speechRate}x`;
     this.el.autoPlayCheck.checked = autoPlay;
+
+    if (handsFree) {
+      this.toggleHandsFree(true);
+    }
+  }
+
+  toggleHandsFree(forceState = null) {
+    this.handsFree = forceState !== null ? forceState : !this.handsFree;
+    db.saveSetting('handsFree', this.handsFree);
+
+    if (this.el.handsFreeCheck) {
+      this.el.handsFreeCheck.checked = this.handsFree;
+    }
+
+    if (this.handsFree) {
+      if (this.el.handsFreeBtn) {
+        this.el.handsFreeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+        this.el.handsFreeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/30');
+      }
+      if (this.el.handsFreeText) this.el.handsFreeText.textContent = '免手持 (已開啟)';
+      speech.requestWakeLock();
+      this.showToast('已開啟 🚗 駕駛免手持對話模式！螢幕保持常亮，朗讀結束自動開啟麥克風。', 'success');
+    } else {
+      if (this.el.handsFreeBtn) {
+        this.el.handsFreeBtn.classList.remove('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/30');
+        this.el.handsFreeBtn.classList.add('bg-slate-800', 'text-slate-300');
+      }
+      if (this.el.handsFreeText) this.el.handsFreeText.textContent = '免手持對話';
+      speech.releaseWakeLock();
+      this.showToast('已關閉免手持對話模式。', 'info');
+    }
   }
 
   async saveSettings() {
@@ -118,6 +178,7 @@ class App {
     }
 
     const recLang = this.el.recLangSelect ? this.el.recLangSelect.value : 'zh-TW';
+    const handsFree = this.el.handsFreeCheck ? this.el.handsFreeCheck.checked : false;
     const speechRate = parseFloat(this.el.speechRateInput.value);
     const autoPlay = this.el.autoPlayCheck.checked;
     const voiceName = this.el.voiceSelect.value;
@@ -125,6 +186,7 @@ class App {
     await db.saveSetting('apiKey', apiKey);
     await db.saveSetting('model', model);
     await db.saveSetting('recLang', recLang);
+    await db.saveSetting('handsFree', handsFree);
     await db.saveSetting('speechRate', speechRate);
     await db.saveSetting('autoPlay', autoPlay);
     await db.saveSetting('voiceName', voiceName);
@@ -134,6 +196,8 @@ class App {
     speech.setRate(speechRate);
     speech.autoPlay = autoPlay;
     speech.setVoice(voiceName);
+
+    this.toggleHandsFree(handsFree);
 
     this.closeModal(this.el.settingsModal);
     this.showToast('設定已成功儲存！', 'success');
@@ -475,8 +539,18 @@ class App {
       await db.saveMessage(aiMsg);
       this.messages.push(aiMsg);
 
+      const onSpeechFinish = () => {
+        if (this.handsFree && !this.isGenerating) {
+          setTimeout(() => {
+            this.toggleVoiceInput();
+          }, 600);
+        }
+      };
+
       if (speech.autoPlay) {
-        speech.speak(fullResponse);
+        speech.speak(fullResponse, null, onSpeechFinish);
+      } else if (this.handsFree) {
+        onSpeechFinish();
       }
 
       this.currentChat.updatedAt = new Date().toISOString();
@@ -502,7 +576,9 @@ class App {
     }
 
     this.el.micPulse.classList.remove('hidden');
-    this.el.micStatusText.textContent = '聆聽中... (可同時說中文與英文)';
+    this.el.micStatusText.textContent = this.handsFree
+      ? '🚗 免手持對話中... 請說話'
+      : '聆聽中... (可同時說中文與英文)';
 
     speech.startListening(
       (transcript, isFinal) => {
@@ -546,6 +622,13 @@ class App {
 
   // --- Event Bindings ---
   bindEvents() {
+    if (this.el.handsFreeBtn) {
+      this.el.handsFreeBtn.addEventListener('click', () => {
+        speech.unlock();
+        this.toggleHandsFree();
+      });
+    }
+
     this.el.chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -578,6 +661,7 @@ class App {
       this.el.apiKeyInput.value = this.llm.apiKey;
       this.el.modelSelect.value = this.llm.model || 'gemini-2.5-flash';
       if (this.el.recLangSelect) this.el.recLangSelect.value = speech.recLang || 'zh-TW';
+      if (this.el.handsFreeCheck) this.el.handsFreeCheck.checked = this.handsFree;
 
       const voices = speech.getEnglishVoices();
       this.el.voiceSelect.innerHTML = '<option value="">預設系統聲音</option>';
