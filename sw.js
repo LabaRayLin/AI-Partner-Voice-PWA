@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-partner-pwa-v19';
+const CACHE_NAME = 'ai-partner-pwa-v20';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -14,7 +14,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell v19');
+      console.log('[Service Worker] Caching app shell v20');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );

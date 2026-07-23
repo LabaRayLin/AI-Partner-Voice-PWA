@@ -1,6 +1,7 @@
 /**
  * speech.js - Web Native Speech Recognition (STT) & Multi-Engine Speech Synthesis (TTS)
  * Supports Google Cloud HD Neural Human Voices (US/UK/AU) & System Web Speech
+ * iOS Safari HTML5 Audio Unlocked
  */
 
 export class SpeechManager {
@@ -14,8 +15,8 @@ export class SpeechManager {
     this.pitch = 1.0;
     this.autoPlay = true;
     this.recLang = 'zh-TW'; // Default to zh-TW for seamless mixed Chinese + English recognition
-    this.ttsEngine = 'google-hd-us'; // Default to Google HD Audio for natural human voice
-    this.currentAudio = null;
+    this.ttsEngine = 'google-hd-us'; // Default to Google Cloud HD Audio for natural human voice
+    this.audioPlayer = new Audio(); // Persistent HTML5 Audio instance for iOS Safari
     this.wakeLock = null;
 
     this.initRecognition();
@@ -186,17 +187,27 @@ export class SpeechManager {
 
   /**
    * iOS Safari User-Gesture Unlock Helper
+   * Synchronously unlocks both Web Speech Synthesis and HTML5 Audio context on iOS!
    */
   unlock() {
-    if (!this.synth) return;
-    try {
-      this.synth.resume();
-      const silentUtterance = new SpeechSynthesisUtterance(' ');
-      silentUtterance.volume = 0.01;
-      silentUtterance.rate = 10.0; // Play instantly
-      this.synth.speak(silentUtterance);
-    } catch (e) {
-      console.warn('TTS Unlock warning:', e);
+    if (this.synth) {
+      try {
+        this.synth.resume();
+        const silentUtterance = new SpeechSynthesisUtterance(' ');
+        silentUtterance.volume = 0.01;
+        silentUtterance.rate = 10.0; // Play instantly
+        this.synth.speak(silentUtterance);
+      } catch (e) {
+        console.warn('TTS Unlock warning:', e);
+      }
+    }
+
+    if (this.audioPlayer) {
+      try {
+        // Unlock HTML5 Audio context for iOS Safari
+        this.audioPlayer.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+        this.audioPlayer.play().catch(() => {});
+      } catch (e) {}
     }
   }
 
@@ -321,24 +332,22 @@ export class SpeechManager {
       index++;
 
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunkText)}&tl=${lang}&client=tw-ob`;
-      const audio = new Audio();
-      audio.src = url;
-      audio.playbackRate = this.rate || 1.0;
-      this.currentAudio = audio;
+      
+      this.audioPlayer.src = url;
+      this.audioPlayer.playbackRate = this.rate || 1.0;
 
-      audio.onended = () => {
+      this.audioPlayer.onended = () => {
         playNext();
       };
 
-      audio.onerror = (err) => {
+      this.audioPlayer.onerror = (err) => {
         console.warn('Cloud Audio chunk play warning:', err);
         playNext();
       };
 
-      audio.play().catch(err => {
+      this.audioPlayer.play().catch(err => {
         console.warn('Cloud Audio play catch:', err);
-        // If HTML5 audio is blocked by iOS, fallback to System TTS
-        this._speakSystemTTS(chunks.slice(index - 1).join(' '), null, onEnd);
+        playNext();
       });
     };
 
@@ -410,10 +419,9 @@ export class SpeechManager {
   }
 
   stopSpeaking() {
-    if (this.currentAudio) {
+    if (this.audioPlayer) {
       try {
-        this.currentAudio.pause();
-        this.currentAudio = null;
+        this.audioPlayer.pause();
       } catch (e) {}
     }
     if (this.synth) {
